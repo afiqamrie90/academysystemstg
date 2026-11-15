@@ -19,10 +19,13 @@
     Available to admin (Assessment tab) and to coaches on their own age group (Coach page)
   - Coach page split into two tabs (Attendance / Assessment); Back button pinned top-right like admin Logout;
     coach tab choice now remembered across reloads; admin tab highlighting scoped to #adminView so the two tab bars don't clash
-  - Report card PDF — Phase 4: one page per player, crest + maroon header, composite band, per-area ratings, coach narrative,
-    attendance for that month, coach-name signature line, © footer. Parent copy shows bands only (no raw 0-5 numbers);
-    Management copy adds the composite score and the full skill grid. Long feedback flows onto page 2 with a continuation
-    header and page numbers. Coach name field added to the assessment form and saved with the assessment
+  - Report card PDF — Phase 4: one card per player in the Real Chukai layout (not a grid table) — crest + maroon header,
+    player name, profile box (Team / Position / Age / Rubric / Coach / Cycle), lettered area bars (A-D) each showing the
+    area mean and its weight, per-skill rows with colour-coded N / 5 (N/A and un-rated shown differently), boxed composite
+    score + band, attendance chips for that month, coach feedback blocks, signature line, © footer on every page.
+    One version only — the Parents/Management split was dropped and every card carries the full numbers.
+    Long content flows onto page 2 with a continuation header and page numbers. Coach name field added to the
+    assessment form and saved with the assessment
   - Fixes: report month name, duplicate player options when two assessment loads overlapped, table rows no longer
     collide with the footer when a rubric is long
   - Coaches tab (admin): register of who coaches each age group (U8-U16), saved to saca/coachStaff.
@@ -1477,7 +1480,7 @@ function captureAssessDraft() {  if (!assessMeta) { delete assessDraft[assessCtx
   assessDraft[assessCtxName] = {
     meta: assessMeta, categories: assessCategories, state: { ...assessState }, editing: assessEditing,
     notes: assessVal('assess-notes'), focus: assessVal('assess-focus'), reco: assessVal('assess-reco'),
-    coachName: assessVal('assess-coachname'), audience: assessVal('report-audience'),
+    coachName: assessVal('assess-coachname'),
     playerId: document.getElementById(assessCtx.player).value
   };
 }
@@ -1490,7 +1493,6 @@ function restoreAssessDraft() {
   assessMeta = d.meta; assessCategories = d.categories; assessState = { ...d.state }; assessEditing = d.editing;
   document.getElementById(assessCtx.player).value = d.playerId;
   renderAssessForm(d.notes, d.focus, d.reco, d.editing, d.coachName);
-  if (d.audience) { const a = assessFind('.report-audience'); if (a) a.value = d.audience; }
   return true;
 }
 
@@ -1626,7 +1628,6 @@ function renderAssessForm(notes, focus, reco, editing, coachName) {
   html += `<label style="display:block;color:#999;font-size:12px;margin-bottom:4px;">Coach name (appears on the report card signature)</label>`;
   html += `<input type="text" class="assess-coachname" placeholder="e.g. Coach Azlan" style="width:100%;margin-bottom:14px;" value="${esc(coachName || '')}">`;
   html += `<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;align-items:center;">`;
-  html += `<select class="report-audience" style="margin-right:auto;"><option value="parent">Parent / Coach</option><option value="management">Management</option></select>`;
   html += `<button class="btn-secondary" onclick="copyLastAssess()">Copy last month</button>`;
   html += `<button class="btn-secondary" onclick="generateReportCard()">Download Report Card (PDF)</button>`;
   html += `<button class="btn-success" onclick="saveAssessment()">Save Assessment</button>`;
@@ -1753,10 +1754,6 @@ function categoryBreakdown(categories, ratings) {
 async function generateReportCard() {
   if (!assessMeta || !assessMeta.playerId) { alert('Select a player first.'); return; }
 
-  const audienceSel = assessFind('.report-audience');
-  const audience = audienceSel ? audienceSel.value : 'parent';
-  const forParents = audience === 'parent';
-
   const comp = computeComposite(assessCategories, assessState);
   const band = bandFor(comp);
   const breakdown = categoryBreakdown(assessCategories, assessState);
@@ -1778,8 +1775,14 @@ async function generateReportCard() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
-  const M = 44;
+  const M = 44, CW = W - M * 2;
+  const BOT = H - 70;   // content stops here; the footer band owns everything below
   const MAROON = [128, 0, 0], GOLD = [255, 167, 0], INK = [30, 30, 30], MUTED = [110, 110, 110];
+  const CAT_BG = [240, 232, 228], ROW_BG = [250, 248, 244], LINE = [215, 208, 202];
+  let y = 0;
+  const newPage = () => { doc.addPage(); y = 56; };
+  const need = h => { if (y + h > BOT) newPage(); };
+  const scoreColor = v => v === null || typeof v !== 'number' ? MUTED : v >= 4 ? [31, 157, 85] : v >= 2.5 ? [196, 130, 20] : [192, 57, 43];
 
   // Header band
   doc.setFillColor(...MAROON); doc.rect(0, 0, W, 104, 'F');
@@ -1790,99 +1793,104 @@ async function generateReportCard() {
   doc.text('Player Assessment Report', M + 92, 58);
   doc.setTextColor(235, 220, 220); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
   doc.text(`${monthName} ${year}  ·  ${assessMeta.group}`, M + 92, 76);
-  doc.setFontSize(8); doc.text(forParents ? 'For parents & coach' : 'Management copy', W - M, 76, { align: 'right' });
 
-  // Player identity
-  let y = 132;
+  // Player identity + profile grid
+  y = 128;
   doc.setTextColor(...INK); doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
-  doc.text(player.name || assessMeta.playerName, M, y); y += 18;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...MUTED);
-  const rubricName = assessMeta.rubricKey === 'gk' ? 'Goalkeeper' : 'Outfield';
-  const profileBits = [assessMeta.group, assessMeta.position, age !== null ? `Age ${age}` : null,
-    // the rubric only adds information when it doesn't just repeat the position
-    (assessMeta.position || '').toLowerCase() !== rubricName.toLowerCase() ? `${rubricName} rubric` : null];
-  doc.text(profileBits.filter(Boolean).join('   ·   '), M, y); y += 20;
+  doc.text(player.name || assessMeta.playerName, M, y); y += 12;
 
-  // Composite panel — parents see the band in words, management also sees the number
-  doc.setFillColor(234, 243, 255); doc.roundedRect(M, y, W - M * 2, 58, 8, 8, 'F');
-  doc.setTextColor(31, 78, 143); doc.setFont('helvetica', 'bold');
-  if (forParents) {
-    doc.setFontSize(19); doc.text(band, M + 20, y + 36);
-  } else {
-    doc.setFontSize(22); doc.text(comp === null ? '—' : comp.toFixed(2), M + 20, y + 38);
-    doc.setFontSize(11); doc.text(band, M + 20 + doc.getTextWidth(comp === null ? '—' : comp.toFixed(2)) + 14, y + 37);
-  }
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...MUTED);
-  doc.text(forParents ? 'Overall development band' : 'Weighted composite (0-5) and band', W - M - 20, y + 37, { align: 'right' });
+  const rubricName = assessMeta.rubricKey === 'gk' ? 'Goalkeeper' : 'Outfield';
+  const profile = [['Team', assessMeta.group], ['Position', assessMeta.position || rubricName], ['Age', age === null ? '—' : String(age)],
+    ['Rubric', rubricName], ['Coach', coachName || '—'], ['Cycle', `${monthName} ${year}`]];
+  const boxH = 48, colW = CW / 3;
+  doc.setFillColor(248, 246, 242); doc.setDrawColor(...LINE); doc.roundedRect(M, y, CW, boxH, 5, 5, 'FD');
+  profile.forEach(([label, val], i) => {
+    const cx = M + (i % 3) * colW + 12, cy = y + 18 + Math.floor(i / 3) * 22;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...MUTED);
+    doc.text(label.toUpperCase(), cx, cy);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...INK);
+    doc.text(String(doc.splitTextToSize(String(val), colW - 16)[0]), cx, cy + 11);
+  });
+  y += boxH + 24;
+
+  // Ratings — one block per category
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
+  doc.text('Skill assessment', M, y); y += 10;
+
+  breakdown.forEach((c, ci) => {
+    if (y + 20 + c.skills.length * 15 + 16 > BOT) newPage();
+    doc.setFillColor(...CAT_BG); doc.rect(M, y, CW, 20, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...MAROON);
+    doc.text(`${String.fromCharCode(65 + ci)}. ${c.name}`, M + 8, y + 13.5);
+    doc.setFontSize(9); doc.setTextColor(...INK);
+    doc.text(c.mean === null ? 'Not assessed' : `${c.mean.toFixed(2)} / 5`, W - M - 54, y + 13.5, { align: 'right' });
+    doc.setTextColor(120, 90, 0);
+    doc.text(`${c.weight}%`, W - M - 8, y + 13.5, { align: 'right' });
+    y += 20;
+    c.skills.forEach((s, i) => {
+      if (y + 15 > BOT) newPage();
+      if (i % 2 === 0) { doc.setFillColor(...ROW_BG); doc.rect(M, y, CW, 15, 'F'); }
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+      doc.text(s.name, M + 16, y + 10.5);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(...scoreColor(s.val));
+      doc.text(s.val === null ? 'N/A' : typeof s.val === 'number' ? `${s.val} / 5` : '—', W - M - 54, y + 10.5, { align: 'right' });
+      y += 15;
+    });
+    doc.setDrawColor(...LINE); doc.setLineWidth(0.5); doc.line(M, y, W - M, y);
+    y += 16;
+  });
+
+  // Composite
+  if (y + 62 > BOT) newPage();
+  doc.setFillColor(234, 243, 255); doc.setDrawColor(190, 210, 235);
+  doc.roundedRect(M, y, CW, 54, 8, 8, 'FD');
+  doc.setFont('helvetica', 'bold'); doc.setTextColor(31, 78, 143); doc.setFontSize(20);
+  doc.text(comp === null ? '— / 5.00' : `${comp.toFixed(2)} / 5.00`, W / 2, y + 25, { align: 'center' });
+  doc.setFontSize(11); doc.text(band, W / 2, y + 43, { align: 'center' });
   y += 74;
 
-  // Skills
+  // Attendance record
+  if (y + 40 > BOT) newPage();
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
-  doc.text(forParents ? 'Development by area' : 'Skill ratings', M, y); y += 8;
+  doc.text('Attendance record', M, y); y += 16;
+  doc.setFontSize(9);
+  if (att.total) {
+    const t1 = `Present  ${att.present} of ${att.total}  (${attPct}%)`, t2 = `Absent  ${att.absent}`;
+    const w1 = doc.getTextWidth(t1) + 20;
+    doc.setFillColor(232, 246, 236); doc.setTextColor(31, 157, 85); doc.roundedRect(M, y - 10, w1, 18, 9, 9, 'F');
+    doc.setFont('helvetica', 'bold'); doc.text(t1, M + 10, y + 3.5);
+    doc.setFillColor(250, 235, 235); doc.setTextColor(192, 57, 43); doc.roundedRect(M + w1 + 8, y - 10, doc.getTextWidth(t2) + 20, 18, 9, 9, 'F');
+    doc.text(t2, M + w1 + 18, y + 3.5);
+  } else {
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(...MUTED);
+    doc.text(`No sessions recorded for ${monthName} ${year}.`, M, y + 3);
+  }
+  y += 32;
 
-  const tableCfg = forParents
-    ? {
-        head: [['Area', 'Emphasis', 'Rating']],
-        body: breakdown.map(c => [c.name, `${c.weight}%`, c.mean === null ? 'Not assessed' : bandFor(c.mean)]),
-        columnStyles: { 1: { halign: 'center', cellWidth: 60 }, 2: { cellWidth: 130 } }
-      }
-    : {
-        head: [['Category', 'Skill', 'Score', 'Area score']],
-        body: (() => {
-          const rows = [];
-          breakdown.forEach(c => {
-            c.skills.forEach((s, i) => {
-              rows.push([
-                i === 0 ? `${c.name} (${c.weight}%)` : '',
-                s.name,
-                s.val === null ? 'N/A' : (typeof s.val === 'number' ? String(s.val) : '—'),
-                i === 0 ? (c.mean === null ? '—' : c.mean.toFixed(2)) : ''
-              ]);
-            });
-          });
-          return rows;
-        })(),
-        columnStyles: { 0: { cellWidth: 150, fontStyle: 'bold' }, 2: { halign: 'center', cellWidth: 45 }, 3: { halign: 'center', cellWidth: 65 } }
-      };
-
-  doc.autoTable({
-    ...tableCfg, startY: y, margin: { left: M, right: M, bottom: 70 },
-    styles: { fontSize: 9, cellPadding: 5, textColor: INK, lineColor: [225, 225, 225], lineWidth: 0.5 },
-    headStyles: { fillColor: MAROON, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-    alternateRowStyles: { fillColor: [249, 247, 243] }
-  });
-  y = doc.lastAutoTable.finalY + 22;
-
-  // Coach narrative
+  // Coach feedback
   const narrative = [['Strengths & observations', notes], ['Focus area for next cycle', focus], ['Recommendations', reco]];
   if (narrative.some(([, v]) => v)) {
-    if (y > H - 190) { doc.addPage(); y = 60; }
+    if (y + 34 > BOT) newPage();
     doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
-    doc.text('Coach feedback', M, y); y += 12;
+    doc.text('Coach feedback', M, y); y += 15;
     narrative.forEach(([label, val]) => {
       if (!val) return;
-      if (y > H - 120) { doc.addPage(); y = 60; }
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...INK);
+      doc.setFontSize(9.5);
+      const lines = doc.splitTextToSize(val, CW);
+      if (y + 12 + lines.length * 11 + 8 > BOT) newPage();
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...INK);
       doc.text(label.toUpperCase(), M, y); y += 12;
-      doc.setFont('helvetica', 'normal'); doc.setTextColor(70, 70, 70);
-      doc.splitTextToSize(val, W - M * 2).forEach(line => { doc.text(line, M, y); y += 12; });
-      y += 8;
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(70, 70, 70); doc.setFontSize(9.5);
+      lines.forEach(line => { doc.text(line, M, y); y += 11; });
+      y += 9;
     });
   }
 
-  // Attendance
-  if (y > H - 110) { doc.addPage(); y = 60; }
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
-  doc.text('Attendance', M, y); y += 14;
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...INK);
-  doc.text(att.total
-    ? `Present at ${att.present} of ${att.total} sessions (${attPct}%)  ·  Absent ${att.absent}`
-    : `No sessions recorded for ${monthName} ${year}.`, M, y);
-  y += 34;
-
   // Signature
-  doc.setDrawColor(...INK); doc.line(M, y, M + 200, y);
-  doc.setFontSize(9); doc.setTextColor(...MUTED);
+  if (y + 50 > BOT) newPage();
+  y += 8;
+  doc.setDrawColor(...INK); doc.setLineWidth(0.8); doc.line(M, y, M + 200, y); doc.setLineWidth(0.5);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...MUTED);
   doc.text(coachName || 'Coach, Shah Alam City Academy', M, y + 14);
   doc.text(`Issued ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, W - M, y + 14, { align: 'right' });
 
@@ -1906,7 +1914,7 @@ async function generateReportCard() {
   }
 
   const safe = (player.name || assessMeta.playerName).split('/')[0].trim().replace(/\s+/g, '_');
-  doc.save(`ReportCard_${safe}_${monthName}_${year}${forParents ? '' : '_Management'}.pdf`);
+  doc.save(`ReportCard_${safe}_${monthName}_${year}.pdf`);
 }
 
 async function loadCoachRegister() {
