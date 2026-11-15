@@ -1,0 +1,2182 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!--
+  v1.14.0 (2026-11-15)
+  - Position field (GK / Outfield) added to player profile — Phase 1 of assessment subsystem
+  - Add-player form + Edit modal capture Position
+  - Position shown in player list (badge), table view, and By Age view
+  - Assessment tab: default GK & Outfield rubrics (config-driven, stored in Firestore) — Phase 2
+  - "Initialize / Reset Rubrics" admin action + read-only rubric viewer
+  - Rubric Editor UI: admin edits categories/weights/skills inline, live 100% check, saves to Firestore (self-serve, no console)
+  - STG/PROD database separation: staging data under saca_stg, prod under saca (auto by host, ?env= override, STG/PROD badge)
+  - Assessment entry — Phase 3: rate each skill 0-5 or N/A, live weighted composite + band, coach notes/focus/recommendations,
+    "Copy last month", saved per player per month with a rubric snapshot (past assessments never change when the rubric is edited).
+    Available to admin (Assessment tab) and to coaches on their own age group (Coach page)
+  v1.13.1 (2026-11-09)
+  - Coach access code: coaches must enter a code to view/mark attendance
+  - Admin can set/change coach code in Players tab > Coach Access Code
+  - Coach session persists until Back/Logout
+  v1.13.0 (2026-11-08)
+  - Player profile fields: IC Number, Parent Contact, Parent Relation (BAPA/IBU)
+  - Add player form captures IC, parent contact, and relation
+  - Player list shows IC and parent info below player name
+  - Edit button + modal to update player profile fields
+  - "View Details (Table)" toggle — Excel-style table view
+  - "By Age" view — players grouped by actual age from IC (tab currently hidden)
+-->
+<title>Player Management - Shah Alam City Academy v1.14.0</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --maroon: #800000;
+  --maroon-dark: #5C0000;
+  --maroon-deeper: #2E0000;
+  --gold: #FFA700;
+  --gold-light: #FFBE33;
+  --white: #FFFFFF;
+  --off-white: #F5F0E8;
+  --black: #0D0D0D;
+  --dark: #141414;
+  --dark-2: #1C1C1C;
+  --gray: #999;
+  --gray-light: #D9D9D9;
+  --green: #25D366;
+  --green-dark: #1da851;
+  --red-bright: #ff6b6b;
+}
+body { font-family: 'Segoe UI', system-ui, Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: var(--black); color: var(--off-white); }
+.container { max-width: 800px; margin: 0 auto; background: var(--dark); padding: 20px; border-radius: 14px; position: relative; border: 1px solid rgba(255,167,0,0.15); }
+h1 { margin-bottom: 0; color: var(--white); text-transform: uppercase; letter-spacing: 0.5px; font-size: 1.6rem; }
+h2 { margin: 4px 0 0; color: var(--gold); text-transform: uppercase; letter-spacing: 2px; font-size: 1.1rem; }
+.brand-header { display: flex; align-items: center; gap: 15px; margin-bottom: 5px; }
+.club-logo { width: 64px; height: 64px; border-radius: 50%; flex-shrink: 0; }
+h3 { color: var(--white); margin-bottom: 10px; }
+h4 { color: var(--white); margin: 10px 0; }
+.hidden { display: none; }
+button { padding: 10px 20px; margin: 5px; cursor: pointer; border: none; border-radius: 4px; font-size: 14px; font-weight: 700; transition: 0.2s; }
+.btn-primary { background: var(--gold); color: var(--black); }
+.btn-primary:hover { background: var(--gold-light); }
+.btn-danger { background: #cc0000; color: white; }
+.btn-danger:hover { background: #e60000; }
+.btn-success { background: var(--maroon); color: var(--white); }
+.btn-success:hover { background: var(--maroon-dark); }
+.btn-secondary { background: var(--dark-2); color: var(--gray-light); border: 1px solid #444; }
+.btn-secondary:hover { border-color: var(--gold); color: var(--gold); }
+input, select { padding: 8px; margin: 5px; border: 1px solid #444; border-radius: 4px; font-size: 14px; background: var(--dark-2); color: var(--off-white); }
+textarea { background: var(--dark-2); color: var(--off-white); border: 1px solid #444; border-radius: 4px; font-family: inherit; }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--gold); }
+table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #2a2a2a; }
+th { background: var(--maroon-dark); color: var(--white); text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+tr:hover td { background: rgba(255,167,0,0.05); }
+.player-row { display: flex; align-items: center; justify-content: space-between; padding: 10px; border-bottom: 1px solid #2a2a2a; }
+.player-name { flex: 1; color: var(--white); }
+.attendance-btn { padding: 8px 16px; margin: 0 5px; cursor: pointer; border: 2px solid #444; background: var(--dark-2); color: var(--gray-light); border-radius: 4px; font-weight: 700; }
+.attendance-btn.hadir { border-color: var(--green); color: var(--green); background: transparent; }
+.attendance-btn.tidak { border-color: #cc0000; color: var(--red-bright); background: transparent; }
+.attendance-btn.selected.hadir { background: var(--green-dark); border-color: var(--green-dark); color: white; }
+.attendance-btn.selected.tidak { background: #cc0000; border-color: #cc0000; color: white; }
+.report-table td.absent { color: var(--red-bright); }
+.audience-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.audience-row span { font-size: 13px; color: var(--gray); }
+.aud-btn { padding: 8px 14px; font-size: 13px; background: var(--dark-2); color: var(--gray-light); border: 1px solid #333; border-radius: 4px; cursor: pointer; font-weight: 600; }
+.aud-btn.active { background: var(--gold); color: var(--black); border-color: var(--gold); }
+.site-footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 22px; margin-top: 25px; font-size: 0.78rem; color: var(--gray); }
+.site-footer .gold { color: var(--gold); }
+.tabs { display: flex; gap: 5px; margin-bottom: 20px; }
+.tab { padding: 10px 20px; cursor: pointer; border: 1px solid #333; background: var(--dark-2); color: var(--gray-light); border-radius: 4px 4px 0 0; font-weight: 700; }
+.tab.active { background: var(--gold); color: var(--black); border-color: var(--gold); }
+hr { border: none; border-top: 1px solid #2a2a2a; }
+#batchAddBox { background: var(--dark-2) !important; border: 1px solid #333; }
+a { color: var(--gold); }
+
+/* ===== MOBILE ===== */
+@media (max-width: 600px) {
+  body { padding: 10px; }
+  .container { padding: 14px; }
+  .brand-header { gap: 10px; }
+  .club-logo { width: 48px; height: 48px; }
+  h1 { font-size: 1.15rem; padding-right: 90px; }
+  h2 { font-size: 0.85rem; letter-spacing: 1px; }
+  .tabs { flex-wrap: wrap; }
+  .tab { flex: 1; text-align: center; padding: 8px 4px; font-size: 12px; white-space: nowrap; }
+  button { padding: 8px 12px; font-size: 13px; }
+  input, select { padding: 7px; font-size: 13px; }
+  th, td { padding: 6px; font-size: 12px; }
+  #reportOutput { overflow-x: auto; }
+  .report-table { min-width: 540px; }
+  .player-row { flex-wrap: wrap; row-gap: 8px; }
+  .player-row > label:not(.fee-radio) { flex: 1 1 100% !important; }
+  .player-row > .player-name { flex: 1 1 100% !important; }
+  .player-row > select { flex: 1 1 130px; }
+  .player-row > button { flex: 1 1 0; margin: 0 5px; }
+  .player-row > label.fee-radio { flex: 1 1 0; justify-content: center; }
+  .attendance-btn { flex: 1 1 0; padding: 8px 10px; text-align: center; }
+}
+
+  /* assessment entry */
+  .rate-btn { min-width: 32px; padding: 5px 8px; margin: 2px; border: 1px solid #555; background: #222; color: #ccc; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .rate-btn:hover { border-color: var(--gold); }
+  .rate-btn.sel { background: var(--gold); color: #1a1a1a; border-color: var(--gold); font-weight: 800; }
+  .rate-btn.na { min-width: 44px; }
+  .rate-btn.na.sel { background: #6b6b6b; color: #fff; border-color: #6b6b6b; }
+  .assess-cat { border: 1px solid #444; border-radius: 8px; padding: 12px; margin-bottom: 12px; background: #1e1e1e; }
+  .assess-cat .ch { display: flex; justify-content: space-between; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .assess-cat .ch .cw { color: var(--gold); }
+  .assess-skill { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid #2a2a2a; }
+  .assess-skill .sn { flex: 1; min-width: 140px; font-size: .9rem; }
+  .assess-skill .btns { display: flex; flex-wrap: wrap; }
+  .assess-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .comp-box { background: linear-gradient(135deg,#eaf3ff,#d8e8ff); border-radius: 10px; text-align: center; padding: 10px 16px; min-width: 150px; }
+  .comp-box .big { font-size: 1.5rem; font-weight: 800; color: #1f4e8f; }
+  .comp-box .band { font-size: .78rem; letter-spacing: .5px; text-transform: uppercase; color: #2a5f9e; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="brand-header">
+    <img src="logo.jpg" alt="Shah Alam City FC" class="club-logo">
+    <div>
+      <h1>Shah Alam City Academy</h1>
+      <h2>Player Management System</h2>
+    </div>
+  </div>
+  <p style="color:#999;font-size:12px;margin-bottom:20px;">Version 1.14.0 <span id="envBadge"></span></p>
+
+  <div id="loginView">
+    <h3>Admin Login</h3>
+    <input type="password" id="adminPassword" placeholder="Password" onkeydown="if(event.key==='Enter') adminLogin()">
+    <button class="btn-primary" onclick="adminLogin()">Login</button>
+    <hr style="margin:20px 0;">
+    <h3>Coach</h3>
+    <select id="coachAgeGroupSelect">
+      <option value="U8">U8</option>
+      <option value="U10">U10</option>
+      <option value="U12">U12</option>
+      <option value="U14">U14</option>
+      <option value="U16">U16</option>
+    </select>
+    <input type="password" id="coachCode" placeholder="Coach code" style="width:140px;" onkeydown="if(event.key==='Enter') coachLogin()">
+    <button class="btn-primary" onclick="coachLogin()">Start</button>
+  </div>
+
+  <div id="adminView" class="hidden">
+    <button class="btn-secondary" onclick="logout()" style="position:absolute;top:20px;right:20px;">Logout</button>
+    <div class="tabs">
+      <div class="tab active" onclick="showAdminTab('players')">Players</div>
+      <div class="tab hidden" onclick="showAdminTab('byAge')">By Age</div>
+      <div class="tab" onclick="showAdminTab('attendance')">Attendance</div>
+      <div class="tab" onclick="showAdminTab('fees')">Fees</div>
+      <div class="tab" onclick="showAdminTab('reports')">Reports</div>
+      <div class="tab" onclick="showAdminTab('assessment')">Assessment</div>
+    </div>
+
+    <div id="adminPlayers">
+      <h3>Manage Players</h3>
+      <select id="adminAgeGroup" onchange="loadAdminPlayers()">
+        <option value="U8">U8</option>
+        <option value="U10">U10</option>
+        <option value="U12">U12</option>
+        <option value="U14">U14</option>
+        <option value="U16">U16</option>
+      </select>
+      
+      <div style="margin:15px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <input type="text" id="newPlayerName" placeholder="Player name" style="flex:1;min-width:150px;">
+        <input type="text" id="newPlayerIC" placeholder="IC Number" style="width:140px;">
+        <input type="text" id="newPlayerParent" placeholder="Parent contact" style="width:140px;">
+        <select id="newPlayerRelation" style="width:100px;">
+          <option value="">- Relation -</option>
+          <option value="BAPA">BAPA</option>
+          <option value="IBU">IBU</option>
+        </select>
+        <select id="newPlayerPosition" style="width:110px;">
+          <option value="">- Position -</option>
+          <option value="GK">GK</option>
+          <option value="Outfield">Outfield</option>
+        </select>
+        <button class="btn-success" onclick="addPlayer()">Add</button>
+        <button class="btn-primary" onclick="toggleBatchAdd()">Batch Add</button>
+        <button id="bulkDeleteBar" class="btn-danger hidden" style="margin-left:10px;" onclick="bulkRemovePlayers()">Remove Selected Players</button>
+      </div>
+
+      <div id="batchAddBox" class="hidden" style="margin:15px 0;padding:15px;background:#1C1C1C;border-radius:4px;border:1px solid #333;">
+        <h4>Quick Edit All Names</h4>
+        <textarea id="batchNames" rows="8" style="width:100%;padding:10px;font-size:14px;" placeholder="Enter one name per line"></textarea>
+        <button class="btn-success" onclick="batchAddPlayers()">Save</button>
+        <button class="btn-secondary" onclick="toggleBatchAdd()">Cancel</button>
+        <p style="color:#999;font-size:12px;margin-top:5px;">One name per line. Existing names will not be duplicated.</p>
+      </div>
+
+      <div id="playerList"></div>
+
+      <div id="playerTable" class="hidden" style="margin-top:15px;overflow-x:auto;">
+        <table style="min-width:600px;">
+          <thead>
+            <tr>
+              <th style="width:40px;">BIL</th>
+              <th>Nama</th>
+              <th>No IC</th>
+              <th>Contact Parents</th>
+              <th style="width:80px;">Relation</th>
+              <th style="width:70px;">Position</th>
+              <th style="width:80px;">Fee</th>
+              <th style="width:100px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="playerTableBody"></tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:15px;display:flex;gap:10px;">
+        <button class="btn-secondary" id="viewToggleBtn" onclick="togglePlayerView()">View Details (Table)</button>
+      </div>
+
+      <div id="feeSaveAllBar" class="hidden" style="margin-top:15px;">
+        <button class="btn-success" onclick="saveAllFees()">Save All Fee Changes</button>
+      </div>
+
+      <div id="bulkTransferBar" class="hidden" style="margin-top:15px;">
+        <label style="display:inline-flex;align-items:center;gap:5px;">
+          Transfer to:
+          <select id="transferTargetGroup">
+            <option value="U8">U8</option>
+            <option value="U10">U10</option>
+            <option value="U12">U12</option>
+            <option value="U14">U14</option>
+            <option value="U16">U16</option>
+          </select>
+        </label>
+        <button class="btn-primary" onclick="transferSelectedPlayers()">Transfer Selected Players</button>
+      </div>
+
+      <hr style="margin:20px 0;">
+      <button class="btn-danger" onclick="resetAgeGroupData()">Reset <span id="resetGroupLabel">U8</span> Player List</button>
+      <p style="color:#999;font-size:12px;margin-top:5px;">Removes all players in the selected age group. Requires admin password.</p>
+
+      <hr style="margin:20px 0;">
+      <h4>Coach Access Code</h4>
+      <p style="color:#999;font-size:12px;margin-bottom:8px;">Code coaches need to enter to view/mark attendance. Leave empty to disable coach access.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <input type="text" id="coachCodeSetting" placeholder="Set new coach code" style="flex:1;min-width:180px;">
+        <button class="btn-success" onclick="saveCoachCode()">Save Code</button>
+      </div>
+      <p id="coachCodeStatus" style="color:#999;font-size:12px;margin-top:8px;"></p>
+    </div>
+
+    <div id="adminByAge" class="hidden">
+      <h3>Players by Age</h3>
+      <p style="color:#999;font-size:12px;margin-bottom:15px;">Grouped by actual age calculated from IC number</p>
+      <div id="byAgeContent"></div>
+    </div>
+
+    <div id="adminAttendance" class="hidden">
+      <h3>Attendance</h3>
+      <input type="date" id="adminDate" onchange="loadAdminAttendance()">
+      <select id="adminAttAgeGroup" onchange="loadAdminAttendance()">
+        <option value="U8">U8</option>
+        <option value="U10">U10</option>
+        <option value="U12">U12</option>
+        <option value="U14">U14</option>
+        <option value="U16">U16</option>
+      </select>
+      <div id="adminAttendanceList"></div>
+    </div>
+
+    <div id="adminReports" class="hidden">
+      <h3>Monthly Report</h3>
+      <select id="reportMonth">
+        <option value="01">January</option>
+        <option value="02">February</option>
+        <option value="03">March</option>
+        <option value="04">April</option>
+        <option value="05">May</option>
+        <option value="06">June</option>
+        <option value="07">July</option>
+        <option value="08">August</option>
+        <option value="09">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+      </select>
+      <select id="reportYear"></select>
+      <select id="reportAgeGroup">
+        <option value="U8">U8</option>
+        <option value="U10">U10</option>
+        <option value="U12">U12</option>
+        <option value="U14">U14</option>
+        <option value="U16">U16</option>
+      </select>
+      <button class="btn-primary" onclick="generateReport()">Generate Report</button>
+      <div id="reportExportBar" class="hidden" style="margin-top:15px;">
+        <div class="audience-row">
+          <span>Report for:</span>
+          <button class="aud-btn active" id="audBtnParents" onclick="setReportAudience('parents')">Parents / Coach</button>
+          <button class="aud-btn" id="audBtnManagement" onclick="setReportAudience('management')">Management</button>
+        </div>
+        <button class="btn-success" onclick="exportReportExcel()">Export to Excel (.xlsx)</button>
+        <button class="btn-primary" onclick="exportReportPDF()">Export to PDF</button>
+      </div>
+      <div id="reportOutput"></div>
+    </div>
+
+    <div id="adminAssessment" class="hidden">
+      <h3>Assessment Rubrics</h3>
+      <p style="color:#999;font-size:12px;margin-bottom:15px;">Position-based rubric used for monthly player reports. One rubric applies to all age groups (U8–U16).</p>
+      <div style="margin-bottom:15px;">
+        <button class="btn-success" onclick="seedRubrics()">Initialize / Reset Rubrics</button>
+        <span style="color:#999;font-size:12px;margin-left:10px;">Writes the default GK &amp; Outfield rubrics. Overwrites existing.</span>
+      </div>
+      <div id="rubricViewer"></div>
+
+      <hr style="margin:26px 0;border:none;border-top:1px solid #333;">
+      <h3>Player Assessments</h3>
+      <p style="color:#999;font-size:12px;margin-bottom:15px;">Monthly position-based assessment. Pick a player to rate each skill (0–5 or N/A); the composite and band compute automatically.</p>
+      <div class="assess-bar">
+        <select id="assessGroup" onchange="loadAssessPlayers()">
+          <option value="U8">U8</option>
+          <option value="U10">U10</option>
+          <option value="U12">U12</option>
+          <option value="U14">U14</option>
+          <option value="U16">U16</option>
+        </select>
+        <select id="assessYear"></select>
+        <select id="assessMonth">
+          <option value="01">January</option>
+          <option value="02">February</option>
+          <option value="03">March</option>
+          <option value="04">April</option>
+          <option value="05">May</option>
+          <option value="06">June</option>
+          <option value="07">July</option>
+          <option value="08">August</option>
+          <option value="09">September</option>
+          <option value="10">October</option>
+          <option value="11">November</option>
+          <option value="12">December</option>
+        </select>
+        <select id="assessPlayer" onchange="openAssessForm()"></select>
+      </div>
+      <div id="assessEntry"></div>
+    </div>
+
+    <div id="adminFees" class="hidden">
+      <h3>Monthly Fees</h3>
+      <select id="feeAgeGroup">
+        <option value="U8">U8</option>
+        <option value="U10">U10</option>
+        <option value="U12">U12</option>
+        <option value="U14">U14</option>
+        <option value="U16">U16</option>
+      </select>
+      <select id="feeMonth">
+        <option value="01">January</option>
+        <option value="02">February</option>
+        <option value="03">March</option>
+        <option value="04">April</option>
+        <option value="05">May</option>
+        <option value="06">June</option>
+        <option value="07">July</option>
+        <option value="08">August</option>
+        <option value="09">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+      </select>
+      <select id="feeYear"></select>
+      <button class="btn-primary" onclick="loadFeeList()">Load</button>
+      <div id="feeList"></div>
+      <div id="feeSaveBar" class="hidden" style="margin-top:15px;">
+        <button class="btn-success" onclick="saveFeePayments()">Save Payment Status</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="coachView" class="hidden">
+    <div style="display:inline-block;background:var(--maroon);color:var(--white);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">🏃 Coach Page</div>
+    <h3>Attendance - <span id="coachGroupDisplay"></span></h3>
+    <input type="date" id="coachDate" onchange="loadCoachAttendance()">
+    <div id="coachAttendanceList"></div>
+    <button class="btn-success" onclick="saveCoachAttendance()">Save</button>
+    <button class="btn-secondary" onclick="backToLogin()" style="margin-top:10px;">Back</button>
+
+    <hr style="margin:30px 0;border:none;border-top:1px solid #444;">
+    <h3>Player Assessment - <span id="coachAssessGroupDisplay"></span></h3>
+    <p style="color:var(--gray);font-size:13px;margin-bottom:10px;">Rate each skill 0-5 or mark N/A. Composite score and band compute automatically.</p>
+    <div class="assess-bar">
+      <select id="coachAssessYear"></select>
+      <select id="coachAssessMonth">
+        <option value="01">January</option>
+        <option value="02">February</option>
+        <option value="03">March</option>
+        <option value="04">April</option>
+        <option value="05">May</option>
+        <option value="06">June</option>
+        <option value="07">July</option>
+        <option value="08">August</option>
+        <option value="09">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+      </select>
+      <select id="coachAssessPlayer" onchange="openAssessForm()"></select>
+    </div>
+    <div id="coachAssessEntry"></div>
+  </div>
+
+  <div class="site-footer">
+    <span>© <span id="footerYear">2026</span> Shah Alam City Football Club. All rights reserved.</span>
+    <span>One City. <span class="gold">One Pack.</span></span>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+const SME_LOGO_B64 = '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';
+const firebaseConfig = {
+  apiKey: "AIzaSyDJ-2ydU4HEHkDblcdDNgLLFHEJ9L6Mji4",
+  authDomain: "academy-attendances.firebaseapp.com",
+  projectId: "academy-attendances",
+  storageBucket: "academy-attendances.firebasestorage.app",
+  messagingSenderId: "803403713115",
+  appId: "1:803403713115:web:3dd40d02a89120a7db0d7e"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ---- Environment / database namespace separation ----
+// PROD data lives under ROOT='saca'; STG (staging) data under ROOT='saca_stg' so they never mix.
+// Auto-detected from host: only the production domains are prod, everything else defaults to stg.
+// Override explicitly with ?env=prod or ?env=stg in the URL.
+const PROD_HOSTS = ['apms.shahalamcityfc.com', 'shahalamcityfc.github.io'];
+function resolveEnv() {
+  const q = (new URLSearchParams(location.search).get('env') || '').toLowerCase();
+  if (q === 'stg' || q === 'test') return 'stg';
+  if (q === 'prod' || q === 'live') return 'prod';
+  const h = (location.hostname || '').toLowerCase();
+  const isProd = PROD_HOSTS.some(d => h === d || h.endsWith('.' + d));
+  return isProd ? 'prod' : 'stg';
+}
+const ENV = resolveEnv();
+const ROOT = ENV === 'prod' ? 'saca' : 'saca_stg';
+
+let isAdmin = false;
+let currentCoach = null;
+let attendanceState = {};
+
+const AGE_GROUPS = ['U8', 'U10', 'U12', 'U14', 'U16'];
+
+function init() {
+  const badge = document.getElementById('envBadge');
+  if (badge) {
+    if (ENV === 'stg') {
+      badge.innerHTML = '<span style="background:#e0a000;color:#1a1a1a;font-weight:700;border-radius:4px;padding:1px 7px;margin-left:6px;">STG</span>';
+    } else {
+      badge.innerHTML = '<span style="color:#1f9d55;font-weight:700;margin-left:6px;">PROD</span>';
+    }
+  }
+  document.getElementById('adminDate').valueAsDate = new Date();
+  document.getElementById('coachDate').valueAsDate = new Date();
+  const now = new Date();
+  const y = now.getFullYear();
+  populateYearSelect('reportYear', y);
+  populateYearSelect('feeYear', y);
+  document.getElementById('reportYear').value = String(y);
+  document.getElementById('feeYear').value = String(y);
+  document.getElementById('footerYear').textContent = y;
+  document.getElementById('reportMonth').value = String(now.getMonth() + 1).padStart(2, '0');
+  document.getElementById('feeMonth').value = String(now.getMonth() + 1).padStart(2, '0');
+
+  if (sessionStorage.getItem('saca_admin') === '1') {
+    isAdmin = true;
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('adminView').classList.remove('hidden');
+    const savedTab = sessionStorage.getItem('saca_tab') || 'players';
+    showAdminTab(savedTab);
+  } else if (sessionStorage.getItem('saca_coach')) {
+    const group = sessionStorage.getItem('saca_coach');
+    currentCoach = { group: group };
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('coachView').classList.remove('hidden');
+    document.getElementById('coachGroupDisplay').textContent = group;
+    loadCoachAttendance();
+    setupCoachAssess();
+  } else {
+    document.getElementById('loginView').classList.remove('hidden');
+  }
+}
+
+function populateYearSelect(id, currentYear) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '';
+  [currentYear - 1, currentYear, currentYear + 1].forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = String(y);
+    opt.textContent = y;
+    sel.appendChild(opt);
+  });
+}
+
+async function coachLogin() {
+  const group = document.getElementById('coachAgeGroupSelect').value;
+  const code = document.getElementById('coachCode').value;
+
+  const doc = await db.collection(ROOT).doc('config').get();
+  const coachCode = doc.exists ? doc.data().coachCode : null;
+
+  if (!coachCode) {
+    alert('Coach code not set yet. Ask admin to set it in Settings.');
+    return;
+  }
+  if (code !== coachCode) {
+    alert('Wrong coach code!');
+    return;
+  }
+
+  currentCoach = { group: group };
+  sessionStorage.setItem('saca_coach', group);
+
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('coachView').classList.remove('hidden');
+  document.getElementById('coachGroupDisplay').textContent = group;
+
+  loadCoachAttendance();
+  setupCoachAssess();
+}
+
+function setupCoachAssess() {
+  if (!currentCoach) return;
+  document.getElementById('coachAssessGroupDisplay').textContent = currentCoach.group;
+  setupAssessEntry('coach');
+}
+
+function backToLogin() {
+  currentCoach = null;
+  sessionStorage.removeItem('saca_coach');
+  document.getElementById('coachCode').value = '';
+  document.getElementById('coachView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+}
+
+async function adminLogin() {
+  const pwd = document.getElementById('adminPassword').value;
+  const doc = await db.collection(ROOT).doc('config').get();
+
+  if (doc.exists && doc.data().adminPassword === pwd) {
+    isAdmin = true;
+    sessionStorage.setItem('saca_admin', '1');
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('adminView').classList.remove('hidden');
+    loadAdminPlayers();
+  } else {
+    alert('Wrong password!');
+  }
+}
+
+function logout() {
+  isAdmin = false;
+  currentCoach = null;
+  sessionStorage.removeItem('saca_admin');
+  sessionStorage.removeItem('saca_tab');
+  sessionStorage.removeItem('saca_coach');
+  document.getElementById('adminView').classList.add('hidden');
+  document.getElementById('coachView').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+  document.getElementById('adminPassword').value = '';
+  document.getElementById('coachCode').value = '';
+}
+
+function showAdminTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.remove('active');
+    if (t.textContent.toLowerCase() === tab || (tab === 'byAge' && t.textContent === 'By Age')) t.classList.add('active');
+  });
+  sessionStorage.setItem('saca_tab', tab);
+  
+  document.getElementById('adminPlayers').classList.add('hidden');
+  document.getElementById('adminByAge').classList.add('hidden');
+  document.getElementById('adminAttendance').classList.add('hidden');
+  document.getElementById('adminReports').classList.add('hidden');
+  document.getElementById('adminFees').classList.add('hidden');
+  document.getElementById('adminAssessment').classList.add('hidden');
+
+  if (tab === 'players') {
+    document.getElementById('adminPlayers').classList.remove('hidden');
+    loadAdminPlayers();
+  } else if (tab === 'byAge') {
+    document.getElementById('adminByAge').classList.remove('hidden');
+    loadByAgeView();
+  } else if (tab === 'attendance') {
+    document.getElementById('adminAttendance').classList.remove('hidden');
+    loadAdminAttendance();
+  } else if (tab === 'reports') {
+    document.getElementById('adminReports').classList.remove('hidden');
+  } else if (tab === 'fees') {
+    document.getElementById('adminFees').classList.remove('hidden');
+  } else if (tab === 'assessment') {
+    document.getElementById('adminAssessment').classList.remove('hidden');
+    loadRubricViewer();
+    setupAssessEntry('admin');
+  }
+}
+
+let feePending = {};
+let playerViewMode = 'list';
+
+async function loadAdminPlayers() {
+  const group = document.getElementById('adminAgeGroup').value;
+  document.getElementById('resetGroupLabel').textContent = group;
+  const snapshot = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  
+  feePending = {};
+  document.getElementById('feeSaveAllBar').classList.add('hidden');
+  
+  const list = document.getElementById('playerList');
+  list.innerHTML = `
+    <div class="player-row" style="font-weight:bold;">
+      <label style="display:flex;align-items:center;gap:8px;flex:1;">
+        <input type="checkbox" id="selectAllPlayers" onchange="toggleSelectAll(this.checked)">
+        <span>Select All</span>
+      </label>
+    </div>
+  `;
+  
+  snapshot.forEach(doc => {
+    const player = doc.data();
+    const div = document.createElement('div');
+    div.className = 'player-row';
+    const icDisplay = player.ic ? ` | IC: ${player.ic}` : '';
+    const parentDisplay = player.parentContact ? ` | ${player.parentRelation || 'PARENT'}: ${player.parentContact}` : '';
+    const posBadge = player.position ? `<span style="font-size:10px;font-weight:700;color:#FFA700;border:1px solid #FFA700;border-radius:10px;padding:1px 7px;margin-left:6px;">${player.position === 'GK' ? 'GK' : 'OUT'}</span>` : '';
+    const infoLine = (icDisplay || parentDisplay) ? `<div style="font-size:11px;color:#999;margin-top:2px;">${icDisplay}${parentDisplay}</div>` : '';
+    div.innerHTML = `
+      <label style="display:flex;align-items:center;gap:8px;flex:1;">
+        <input type="checkbox" class="player-check" data-id="${doc.id}" onchange="updateBulkDeleteBar()">
+        <div>
+          <span class="player-name">${player.name}</span>${posBadge}
+          ${infoLine}
+        </div>
+      </label>
+      <select id="fee_${doc.id}" style="margin:0;" data-original="${player.fee || ''}" onchange="onFeeSelectChange('${doc.id}', this)">
+        <option value="">- Select fee -</option>
+        <option value="RM120" ${player.fee === 'RM120' ? 'selected' : ''}>RM120</option>
+        <option value="RM80" ${player.fee === 'RM80' ? 'selected' : ''}>RM80</option>
+        <option value="Scholarship" ${player.fee === 'Scholarship' ? 'selected' : ''}>Scholarship</option>
+      </select>
+      <button class="btn-secondary" onclick="editPlayer('${group}', '${doc.id}')" style="margin:0 5px;font-size:12px;padding:6px 10px;">Edit</button>
+      <button class="btn-success" onclick="savePlayerFee('${group}', '${doc.id}')" style="margin:0 5px;">Save</button>
+      <button class="btn-danger" onclick="removePlayer('${group}', '${doc.id}')">Remove</button>
+    `;
+    list.appendChild(div);
+  });
+  
+  document.getElementById('bulkTransferBar').classList.add('hidden');
+  document.getElementById('bulkDeleteBar').classList.add('hidden');
+
+  const configDoc = await db.collection(ROOT).doc('config').get();
+  const hasCoachCode = configDoc.exists && configDoc.data().coachCode;
+  document.getElementById('coachCodeStatus').textContent = hasCoachCode ? 'Coach code is active.' : 'No coach code set — coach access is disabled.';
+
+  if (playerViewMode === 'table') {
+    renderPlayerTable();
+  }
+}
+
+function onFeeSelectChange(playerId, selectEl) {
+  if (selectEl.value === selectEl.dataset.original) {
+    delete feePending[playerId];
+  } else {
+    feePending[playerId] = selectEl.value;
+  }
+  document.getElementById('feeSaveAllBar').classList.toggle('hidden', Object.keys(feePending).length === 0);
+}
+
+async function saveAllFees() {
+  const group = document.getElementById('adminAgeGroup').value;
+  const ids = Object.keys(feePending);
+  if (ids.length === 0) return;
+  
+  const batch = db.batch();
+  ids.forEach(id => {
+    batch.update(db.collection(ROOT).doc('players').collection(group).doc(id), { fee: feePending[id] });
+  });
+  await batch.commit();
+  
+  alert(`${ids.length} fee change(s) saved!`);
+  loadAdminPlayers();
+}
+
+function updateBulkDeleteBar() {
+  const selectedCount = document.querySelectorAll('.player-check:checked').length;
+  document.getElementById('bulkTransferBar').classList.toggle('hidden', selectedCount < 1);
+  document.getElementById('bulkDeleteBar').classList.toggle('hidden', selectedCount < 2);
+}
+
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.player-check').forEach(cb => cb.checked = checked);
+  updateBulkDeleteBar();
+}
+
+async function savePlayerFee(group, playerId) {
+  const fee = document.getElementById('fee_' + playerId).value;
+  if (!fee) {
+    alert('Please select a fee first!');
+    return;
+  }
+  await db.collection(ROOT).doc('players').collection(group).doc(playerId).update({ fee: fee });
+  alert('Player fee saved!');
+}
+
+async function transferSelectedPlayers() {
+  const fromGroup = document.getElementById('adminAgeGroup').value;
+  const toGroup = document.getElementById('transferTargetGroup').value;
+  
+  if (toGroup === fromGroup) {
+    alert('Source and destination groups are the same!');
+    return;
+  }
+  
+  const selected = [];
+  document.querySelectorAll('.player-check:checked').forEach(cb => selected.push(cb.dataset.id));
+  
+  if (selected.length === 0) {
+    alert('No players selected!');
+    return;
+  }
+  
+  if (!confirm(`Transfer ${selected.length} player(s) from ${fromGroup} to ${toGroup}?`)) return;
+  
+  const batch = db.batch();
+  for (const id of selected) {
+    const docRef = db.collection(ROOT).doc('players').collection(fromGroup).doc(id);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+      batch.set(db.collection(ROOT).doc('players').collection(toGroup).doc(id), {
+        name: docSnap.data().name,
+        active: true
+      });
+      batch.delete(docRef);
+    }
+  }
+  
+  await batch.commit();
+  alert(`${selected.length} player(s) transferred to ${toGroup}.`);
+  loadAdminPlayers();
+}
+
+async function bulkRemovePlayers() {
+  const group = document.getElementById('adminAgeGroup').value;
+  const selected = [];
+  document.querySelectorAll('.player-check:checked').forEach(cb => selected.push(cb.dataset.id));
+  
+  if (selected.length === 0) {
+    alert('No players selected!');
+    return;
+  }
+  
+  if (!confirm(`Remove ${selected.length} selected player(s)?`)) return;
+  
+  const batch = db.batch();
+  selected.forEach(id => {
+    batch.update(db.collection(ROOT).doc('players').collection(group).doc(id), { active: false });
+  });
+  await batch.commit();
+  
+  loadAdminPlayers();
+}
+
+async function resetAgeGroupData() {
+  const group = document.getElementById('adminAgeGroup').value;
+  const pwd = prompt(`Enter admin password to reset ${group} player list:`);
+  if (pwd === null) return;
+
+  const doc = await db.collection(ROOT).doc('config').get();
+  if (!doc.exists || doc.data().adminPassword !== pwd) {
+    alert('Wrong password!');
+    return;
+  }
+
+  if (!confirm(`Remove ALL players in ${group}? Attendance history will be kept.`)) return;
+
+  const snapshot = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  const batch = db.batch();
+  snapshot.forEach(d => batch.update(d.ref, { active: false }));
+  await batch.commit();
+
+  alert(`${snapshot.size} player(s) removed from ${group}.`);
+  loadAdminPlayers();
+}
+
+async function saveCoachCode() {
+  const code = document.getElementById('coachCodeSetting').value.trim();
+  await db.collection(ROOT).doc('config').set({ coachCode: code }, { merge: true });
+  document.getElementById('coachCodeSetting').value = '';
+  document.getElementById('coachCodeStatus').textContent = code ? 'Coach code updated.' : 'Coach access disabled.';
+  setTimeout(() => { document.getElementById('coachCodeStatus').textContent = ''; }, 3000);
+}
+
+async function addPlayer() {
+  const group = document.getElementById('adminAgeGroup').value;
+  const name = document.getElementById('newPlayerName').value.trim();
+  const ic = document.getElementById('newPlayerIC').value.trim();
+  const parent = document.getElementById('newPlayerParent').value.trim();
+  const relation = document.getElementById('newPlayerRelation').value;
+  const position = document.getElementById('newPlayerPosition').value;
+
+  if (!name) {
+    alert('Please enter player name!');
+    return;
+  }
+
+  const playerData = { name: name, active: true };
+  if (ic) playerData.ic = ic;
+  if (parent) playerData.parentContact = parent;
+  if (relation) playerData.parentRelation = relation;
+  if (position) playerData.position = position;
+
+  await db.collection(ROOT).doc('players').collection(group).add(playerData);
+
+  document.getElementById('newPlayerName').value = '';
+  document.getElementById('newPlayerIC').value = '';
+  document.getElementById('newPlayerParent').value = '';
+  document.getElementById('newPlayerRelation').value = '';
+  document.getElementById('newPlayerPosition').value = '';
+  loadAdminPlayers();
+}
+
+function toggleBatchAdd() {
+  const box = document.getElementById('batchAddBox');
+  if (box.classList.contains('hidden')) {
+    box.classList.remove('hidden');
+    document.getElementById('batchNames').value = '';
+  } else {
+    box.classList.add('hidden');
+  }
+}
+
+async function batchAddPlayers() {
+  const group = document.getElementById('adminAgeGroup').value;
+  const raw = document.getElementById('batchNames').value;
+  const names = raw.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+  
+  if (names.length === 0) {
+    alert('Please enter at least one name!');
+    return;
+  }
+  
+  // Add new players only; existing names are skipped
+  const snapshot = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  const batch = db.batch();
+  const existing = {};
+  snapshot.forEach(doc => {
+    existing[doc.data().name.toLowerCase()] = doc.id;
+  });
+  
+  let added = 0;
+  names.forEach(name => {
+    if (!existing[name.toLowerCase()]) {
+      batch.set(db.collection(ROOT).doc('players').collection(group).doc(), {
+        name: name,
+        active: true
+      });
+      added++;
+    }
+  });
+  
+  await batch.commit();
+  alert(`${added} new player(s) added.`);
+  document.getElementById('batchAddBox').classList.add('hidden');
+  loadAdminPlayers();
+}
+
+async function removePlayer(group, playerId) {
+  if (!confirm('Remove this player?')) return;
+
+  await db.collection(ROOT).doc('players').collection(group).doc(playerId).update({
+    active: false
+  });
+
+  loadAdminPlayers();
+}
+
+async function editPlayer(group, playerId) {
+  const doc = await db.collection(ROOT).doc('players').collection(group).doc(playerId).get();
+  const player = doc.data();
+
+  const modal = document.createElement('div');
+  modal.id = 'editPlayerModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;';
+  modal.innerHTML = `
+    <div style="background:#1C1C1C;padding:25px;border-radius:10px;max-width:400px;width:90%;border:1px solid #444;">
+      <h3 style="margin-bottom:15px;color:#FFA700;">Edit Player Info</h3>
+      <div style="margin-bottom:10px;">
+        <label style="display:block;color:#999;font-size:12px;margin-bottom:4px;">Name</label>
+        <input type="text" id="editName" value="${player.name}" style="width:100%;" readonly>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="display:block;color:#999;font-size:12px;margin-bottom:4px;">IC Number</label>
+        <input type="text" id="editIC" value="${player.ic || ''}" placeholder="e.g. 123456-01-2345" style="width:100%;">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="display:block;color:#999;font-size:12px;margin-bottom:4px;">Parent Contact</label>
+        <input type="text" id="editParent" value="${player.parentContact || ''}" placeholder="e.g. 012-3456789" style="width:100%;">
+      </div>
+      <div style="margin-bottom:15px;">
+        <label style="display:block;color:#999;font-size:12px;margin-bottom:4px;">Relation</label>
+        <select id="editRelation" style="width:100%;">
+          <option value="">- Select -</option>
+          <option value="BAPA" ${player.parentRelation === 'BAPA' ? 'selected' : ''}>BAPA</option>
+          <option value="IBU" ${player.parentRelation === 'IBU' ? 'selected' : ''}>IBU</option>
+        </select>
+      </div>
+      <div style="margin-bottom:15px;">
+        <label style="display:block;color:#999;font-size:12px;margin-bottom:4px;">Position</label>
+        <select id="editPosition" style="width:100%;">
+          <option value="">- Select -</option>
+          <option value="GK" ${player.position === 'GK' ? 'selected' : ''}>GK</option>
+          <option value="Outfield" ${player.position === 'Outfield' ? 'selected' : ''}>Outfield</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-secondary" onclick="document.getElementById('editPlayerModal').remove()">Cancel</button>
+        <button class="btn-success" onclick="savePlayerEdit('${group}', '${playerId}')">Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function savePlayerEdit(group, playerId) {
+  const ic = document.getElementById('editIC').value.trim();
+  const parent = document.getElementById('editParent').value.trim();
+  const relation = document.getElementById('editRelation').value;
+  const position = document.getElementById('editPosition').value;
+
+  const updateData = {};
+  updateData.ic = ic;
+  updateData.parentContact = parent;
+  updateData.parentRelation = relation;
+  updateData.position = position;
+
+  await db.collection(ROOT).doc('players').collection(group).doc(playerId).update(updateData);
+
+  document.getElementById('editPlayerModal').remove();
+  loadAdminPlayers();
+}
+
+function togglePlayerView() {
+  const listEl = document.getElementById('playerList');
+  const tableEl = document.getElementById('playerTable');
+  const btn = document.getElementById('viewToggleBtn');
+
+  if (playerViewMode === 'list') {
+    listEl.classList.add('hidden');
+    tableEl.classList.remove('hidden');
+    btn.textContent = 'View List';
+    playerViewMode = 'table';
+    renderPlayerTable();
+  } else {
+    listEl.classList.remove('hidden');
+    tableEl.classList.add('hidden');
+    btn.textContent = 'View Details (Table)';
+    playerViewMode = 'list';
+  }
+}
+
+async function renderPlayerTable() {
+  const group = document.getElementById('adminAgeGroup').value;
+  const snapshot = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  const tbody = document.getElementById('playerTableBody');
+  tbody.innerHTML = '';
+
+  let bil = 0;
+  snapshot.forEach(doc => {
+    bil++;
+    const player = doc.data();
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${bil}</td>
+      <td>${player.name}</td>
+      <td>${player.ic || '-'}</td>
+      <td>${player.parentContact || '-'}</td>
+      <td>${player.parentRelation || '-'}</td>
+      <td>${player.position || '-'}</td>
+      <td>${player.fee || '-'}</td>
+      <td>
+        <button class="btn-secondary" style="font-size:11px;padding:4px 8px;margin:0;" onclick="editPlayer('${group}', '${doc.id}')">Edit</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (bil === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;">No players found</td></tr>';
+  }
+}
+
+async function loadByAgeView() {
+  const ageGroups = ['U8', 'U10', 'U12', 'U14', 'U16'];
+  const currentYear = new Date().getFullYear();
+  const allPlayers = [];
+
+  // Fetch all players from all age groups
+  for (const group of ageGroups) {
+    const snapshot = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+    snapshot.forEach(doc => {
+      const player = doc.data();
+      player.id = doc.id;
+      player.ageGroup = group;
+      allPlayers.push(player);
+    });
+  }
+
+  // Calculate age from IC and group by age
+  const ageMap = {};
+  allPlayers.forEach(player => {
+    let age = null;
+    if (player.ic) {
+      const icYear = parseInt(player.ic.substring(0, 2));
+      const birthYear = icYear >= 50 ? 1900 + icYear : 2000 + icYear;
+      age = currentYear - birthYear;
+    }
+    
+    if (age !== null) {
+      if (!ageMap[age]) ageMap[age] = [];
+      ageMap[age].push(player);
+    }
+  });
+
+  const container = document.getElementById('byAgeContent');
+  container.innerHTML = '';
+
+  const ages = Object.keys(ageMap).map(Number).sort((a, b) => a - b);
+
+  if (ages.length === 0) {
+    container.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">No players with IC numbers found. Please add IC numbers to player profiles.</p>';
+    return;
+  }
+
+  // Render table for each age group
+  for (const age of ages) {
+    const players = ageMap[age].sort((a, b) => a.name.localeCompare(b.name));
+    
+    const section = document.createElement('div');
+    section.style.marginBottom = '30px';
+    section.innerHTML = `<h4 style="color:#FFA700;margin-bottom:10px;">${age} TAHUN</h4>`;
+    
+    const table = document.createElement('table');
+    table.style.minWidth = '600px';
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th style="width:40px;">BIL</th>
+          <th>Nama</th>
+          <th>No IC</th>
+          <th>Contact Parents</th>
+          <th style="width:70px;">Position</th>
+          <th style="width:80px;">Fee</th>
+          <th style="width:80px;">Age Group</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+    
+    const tbody = table.querySelector('tbody');
+    players.forEach((player, idx) => {
+      const tr = document.createElement('tr');
+      const contactDisplay = player.parentContact 
+        ? `${player.parentContact}${player.parentRelation ? ' (' + player.parentRelation + ')' : ''}`
+        : '-';
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${player.name}</td>
+        <td>${player.ic || '-'}</td>
+        <td>${contactDisplay}</td>
+        <td>${player.position || '-'}</td>
+        <td>${player.fee || '-'}</td>
+        <td>${player.ageGroup}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    
+    section.appendChild(table);
+    container.appendChild(section);
+  }
+}
+
+// ---- Assessment rubrics (Phase 2) ----
+const RUBRIC_SEED = {
+  outfield: {
+    key: 'outfield',
+    label: 'Outfield',
+    categories: [
+      { key: 'technical', name: 'Technical', weight: 40, skills: [
+        { key: 'ball_control', name: 'Ball Control' },
+        { key: 'passing', name: 'Passing' },
+        { key: 'first_touch', name: 'First Touch' },
+        { key: 'shooting', name: 'Shooting' },
+        { key: 'one_v_one', name: '1v1' }
+      ]},
+      { key: 'understanding', name: 'Game Understanding', weight: 20, skills: [
+        { key: 'basic_positioning', name: 'Basic Positioning' },
+        { key: 'decision_making', name: 'Decision Making' },
+        { key: 'spatial_awareness', name: 'Spatial Awareness' }
+      ]},
+      { key: 'physical', name: 'Basic Physical', weight: 15, skills: [
+        { key: 'coordination', name: 'Coordination' },
+        { key: 'balance', name: 'Balance' },
+        { key: 'basic_speed', name: 'Basic Speed' }
+      ]},
+      { key: 'attitude', name: 'Attitude / Effort', weight: 25, skills: [
+        { key: 'focus_training', name: 'Focus in Training' },
+        { key: 'high_effort', name: 'High Effort' },
+        { key: 'teamwork', name: 'Teamwork' },
+        { key: 'courage', name: 'Courage' }
+      ]}
+    ]
+  },
+  gk: {
+    key: 'gk',
+    label: 'Goalkeeper',
+    categories: [
+      { key: 'gk_skills', name: 'Goalkeeping Skills', weight: 50, skills: [
+        { key: 'shot_stopping', name: 'Shot Stopping' },
+        { key: 'goal_positioning', name: 'Goal Positioning' },
+        { key: 'distribution', name: 'Distribution / Goal Kick' },
+        { key: 'communication', name: 'Communication' },
+        { key: 'rushing_out', name: 'Rushing Out' }
+      ]},
+      { key: 'understanding', name: 'Game Understanding', weight: 20, skills: [
+        { key: 'basic_positioning', name: 'Basic Positioning' },
+        { key: 'decision_making', name: 'Decision Making' },
+        { key: 'spatial_awareness', name: 'Spatial Awareness' }
+      ]},
+      { key: 'physical', name: 'Basic Physical', weight: 15, skills: [
+        { key: 'coordination', name: 'Coordination' },
+        { key: 'balance', name: 'Balance' },
+        { key: 'basic_speed', name: 'Basic Speed' }
+      ]},
+      { key: 'attitude', name: 'Attitude / Effort', weight: 15, skills: [
+        { key: 'focus_training', name: 'Focus in Training' },
+        { key: 'high_effort', name: 'High Effort' },
+        { key: 'commanding_ball', name: 'Commanding the Ball' },
+        { key: 'teamwork', name: 'Teamwork' }
+      ]}
+    ]
+  }
+};
+
+async function seedRubrics() {
+  if (!confirm('This writes the default GK & Outfield rubrics and OVERWRITES any existing rubric data. Continue?')) return;
+  try {
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    const rubricsRef = db.collection(ROOT).doc('rubrics').collection('items');
+    await rubricsRef.doc('outfield').set({ ...RUBRIC_SEED.outfield, updatedAt: now });
+    await rubricsRef.doc('gk').set({ ...RUBRIC_SEED.gk, updatedAt: now });
+    alert('Rubrics initialized.');
+    loadRubricViewer();
+  } catch (e) {
+    alert('Failed to seed rubrics: ' + e.message);
+  }
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function loadRubricViewer() {
+  const container = document.getElementById('rubricViewer');
+  container.innerHTML = '<p style="color:#999;">Loading rubrics…</p>';
+  const rubricsRef = db.collection(ROOT).doc('rubrics').collection('items');
+  let loaded = 0, missing = 0;
+  let html = '';
+
+  for (const key of ['outfield', 'gk']) {
+    const snap = await rubricsRef.doc(key).get();
+    if (!snap.exists) { missing++; continue; }
+    loaded++;
+    const r = snap.data();
+    html += `<div style="border:1px solid #444;border-radius:8px;padding:16px;margin-bottom:16px;background:#161616;">`;
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">`;
+    html += `<h4 style="color:#FFA700;">${esc(r.label || key)} rubric</h4>`;
+    html += `<button class="btn-primary" style="font-size:12px;padding:6px 12px;margin:0;" onclick="editRubric('${key}')">✏️ Edit</button>`;
+    html += `</div>`;
+    (r.categories || []).forEach(cat => {
+      const skillNames = (cat.skills || []).map(s => esc(s.name)).join(' · ');
+      html += `<div style="margin-bottom:10px;">`;
+      html += `<div style="display:flex;justify-content:space-between;font-weight:700;color:#fff;">`;
+      html += `<span>${esc(cat.name)}</span><span style="color:#FFA700;">${Number(cat.weight) || 0}%</span></div>`;
+      html += `<div style="color:#999;font-size:13px;margin-top:2px;">${skillNames}</div>`;
+      html += `</div>`;
+    });
+    const wsum = (r.categories || []).reduce((a, c) => a + (Number(c.weight) || 0), 0);
+    html += `<div style="border-top:1px dashed #444;margin-top:8px;padding-top:6px;color:#999;font-size:12px;">Total weight: ${wsum}%${wsum !== 100 ? ' ⚠ should be 100%' : ''}</div>`;
+    html += `</div>`;
+  }
+
+  if (loaded === 0) {
+    container.innerHTML = '<p style="color:#999;">No rubrics found. Click <b>Initialize / Reset Rubrics</b> to create them.</p>';
+  } else {
+    container.innerHTML = html + (missing ? `<p style="color:#e0a000;font-size:12px;">${missing} rubric(s) missing — click Initialize to create all.</p>` : '');
+  }
+}
+
+// ---- Rubric editor ----
+let rubricEdit = null;
+let rubricEditKey = null;
+
+function genRubricKey(base, taken) {
+  let slug = String(base || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'item';
+  let k = slug, i = 2;
+  while (taken.has(k)) { k = slug + '_' + i; i++; }
+  taken.add(k);
+  return k;
+}
+
+async function editRubric(key) {
+  const snap = await db.collection(ROOT).doc('rubrics').collection('items').doc(key).get();
+  if (!snap.exists) { alert('Rubric not found. Click Initialize first.'); return; }
+  const r = snap.data();
+  rubricEditKey = key;
+  const taken = new Set();
+  rubricEdit = {
+    key: r.key || key,
+    label: r.label || key,
+    categories: (r.categories || []).map(cat => {
+      let ckey = cat.key;
+      if (!ckey || taken.has(ckey)) ckey = genRubricKey(cat.name || 'category', taken); else taken.add(ckey);
+      return {
+        key: ckey,
+        name: cat.name || '',
+        weight: Number(cat.weight) || 0,
+        skills: (cat.skills || []).map(s => {
+          let skey = s.key;
+          if (!skey || taken.has(skey)) skey = genRubricKey(s.name || 'skill', taken); else taken.add(skey);
+          return { key: skey, name: s.name || '' };
+        })
+      };
+    })
+  };
+  renderRubricEditor();
+}
+
+function renderRubricEditor() {
+  const container = document.getElementById('rubricViewer');
+  let html = `<div style="border:1px solid #FFA700;border-radius:8px;padding:16px;background:#161616;">`;
+  html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;">`;
+  html += `<div style="color:#FFA700;font-weight:800;">Editing: <input type="text" id="rubricLabel" value="${esc(rubricEdit.label)}" oninput="rubricEdit.label=this.value" style="width:180px;display:inline-block;margin-left:6px;"></div>`;
+  html += `<span id="rubricTotal" style="font-weight:700;"></span>`;
+  html += `</div>`;
+
+  rubricEdit.categories.forEach((cat, ci) => {
+    html += `<div style="border:1px solid #444;border-radius:8px;padding:12px;margin-bottom:12px;background:#1e1e1e;">`;
+    html += `<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">`;
+    html += `<input type="text" value="${esc(cat.name)}" oninput="rubricEdit.categories[${ci}].name=this.value" placeholder="Category name" style="flex:1;">`;
+    html += `<input type="number" value="${cat.weight}" min="0" max="100" oninput="rubricEdit.categories[${ci}].weight=Number(this.value)||0;updateRubricTotal()" style="width:70px;" title="Weight %">`;
+    html += `<span style="color:#999;">%</span>`;
+    html += `<button class="btn-danger" style="font-size:11px;padding:4px 8px;margin:0;" onclick="rubricRemoveCategory(${ci})">Remove</button>`;
+    html += `</div>`;
+    html += `<div style="padding-left:10px;">`;
+    cat.skills.forEach((sk, si) => {
+      html += `<div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">`;
+      html += `<input type="text" value="${esc(sk.name)}" oninput="rubricEdit.categories[${ci}].skills[${si}].name=this.value" placeholder="Skill" style="flex:1;">`;
+      html += `<button class="btn-secondary" style="font-size:11px;padding:3px 8px;margin:0;" onclick="rubricRemoveSkill(${ci},${si})">✕</button>`;
+      html += `</div>`;
+    });
+    html += `<button class="btn-secondary" style="font-size:11px;padding:4px 8px;margin:4px 0 0;" onclick="rubricAddSkill(${ci})">+ Add skill</button>`;
+    html += `</div>`;
+    html += `</div>`;
+  });
+
+  html += `<button class="btn-secondary" style="font-size:12px;padding:6px 12px;margin:0 0 12px 0;" onclick="rubricAddCategory()">+ Add category</button>`;
+  html += `<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">`;
+  html += `<button class="btn-secondary" onclick="cancelRubricEdit()">Cancel</button>`;
+  html += `<button class="btn-success" onclick="saveRubric()">Save Rubric</button>`;
+  html += `</div>`;
+  html += `</div>`;
+  container.innerHTML = html;
+  updateRubricTotal();
+}
+
+function updateRubricTotal() {
+  const el = document.getElementById('rubricTotal');
+  if (!el || !rubricEdit) return;
+  const wsum = (rubricEdit.categories || []).reduce((a, c) => a + (Number(c.weight) || 0), 0);
+  if (wsum === 100) { el.textContent = 'Total weight: 100%'; el.style.color = '#1f9d55'; }
+  else { el.textContent = 'Total weight: ' + wsum + '% (should be 100%)'; el.style.color = '#e0a000'; }
+}
+
+function rubricAddCategory() {
+  const taken = collectRubricKeys();
+  rubricEdit.categories.push({ key: genRubricKey('category', taken), name: 'New Category', weight: 0, skills: [{ key: genRubricKey('skill', taken), name: 'New Skill' }] });
+  renderRubricEditor();
+}
+function rubricRemoveCategory(ci) {
+  if (!confirm('Remove this category and all its skills?')) return;
+  rubricEdit.categories.splice(ci, 1);
+  renderRubricEditor();
+}
+function rubricAddSkill(ci) {
+  const taken = collectRubricKeys();
+  rubricEdit.categories[ci].skills.push({ key: genRubricKey('skill', taken), name: 'New Skill' });
+  renderRubricEditor();
+}
+function rubricRemoveSkill(ci, si) {
+  rubricEdit.categories[ci].skills.splice(si, 1);
+  renderRubricEditor();
+}
+
+function collectRubricKeys() {
+  const set = new Set();
+  (rubricEdit.categories || []).forEach(cat => { set.add(cat.key); (cat.skills || []).forEach(s => set.add(s.key)); });
+  return set;
+}
+
+function cancelRubricEdit() {
+  rubricEdit = null; rubricEditKey = null;
+  loadRubricViewer();
+}
+
+async function saveRubric() {
+  if (!rubricEdit || !rubricEditKey) return;
+  const cats = rubricEdit.categories;
+  if (!cats || cats.length === 0) { alert('Rubric must have at least one category.'); return; }
+  const seen = new Set();
+  for (let ci = 0; ci < cats.length; ci++) {
+    const c = cats[ci];
+    if (!c.name || !c.name.trim()) { alert('Category name cannot be empty (row ' + (ci + 1) + ').'); return; }
+    if (!c.skills || c.skills.length === 0) { alert('Category "' + c.name + '" must have at least one skill.'); return; }
+    if (seen.has(c.key)) { alert('Duplicate category key: ' + c.key); return; }
+    seen.add(c.key);
+    for (let si = 0; si < c.skills.length; si++) {
+      const s = c.skills[si];
+      if (!s.name || !s.name.trim()) { alert('Skill name cannot be empty under "' + c.name + '".'); return; }
+      if (seen.has(s.key)) { alert('Duplicate skill key: ' + s.key); return; }
+      seen.add(s.key);
+    }
+  }
+  const wsum = cats.reduce((a, c) => a + (Number(c.weight) || 0), 0);
+  if (wsum !== 100 && !confirm('Weights total ' + wsum + '% (not 100%). Composite auto-renormalizes so this still works. Save anyway?')) return;
+  try {
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    const payload = {
+      key: rubricEditKey,
+      label: (rubricEdit.label || rubricEditKey).trim(),
+      categories: cats.map(c => ({ key: c.key, name: c.name.trim(), weight: Number(c.weight) || 0, skills: c.skills.map(s => ({ key: s.key, name: s.name.trim() })) })),
+      updatedAt: now
+    };
+    await db.collection(ROOT).doc('rubrics').collection('items').doc(rubricEditKey).set(payload);
+    alert('Rubric saved.');
+    rubricEdit = null; rubricEditKey = null;
+    loadRubricViewer();
+  } catch (e) {
+    alert('Failed to save: ' + e.message);
+  }
+}
+
+// ---- Assessment entry (Phase 3) ----
+// Admin and coach panels share this core. All DOM lookups are scoped to the
+// active entry container so both panels can coexist in the document.
+const ASSESS_CTX = {
+  admin: { group: 'assessGroup', year: 'assessYear', month: 'assessMonth', player: 'assessPlayer', entry: 'assessEntry' },
+  coach: { group: null,          year: 'coachAssessYear', month: 'coachAssessMonth', player: 'coachAssessPlayer', entry: 'coachAssessEntry' }
+};
+let assessCtx = ASSESS_CTX.admin;
+let assessState = {};        // { skillKey: 0..5 | null(N/A) }; absent = untouched
+let assessCategories = [];   // rubric categories (or snapshot when editing)
+let assessMeta = null;       // { group, monthKey, playerId, playerName, position, rubricKey, positionSet }
+
+function assessEntryEl() { return document.getElementById(assessCtx.entry); }
+function assessGroup() {
+  return assessCtx.group ? document.getElementById(assessCtx.group).value : (currentCoach ? currentCoach.group : '');
+}
+function assessFind(sel) { const e = assessEntryEl(); return e ? e.querySelector(sel) : null; }
+
+function computeComposite(categories, ratings) {
+  const included = [];
+  (categories || []).forEach(cat => {
+    const vals = (cat.skills || []).map(s => ratings[s.key]).filter(v => typeof v === 'number');
+    if (vals.length > 0) included.push({ weight: Number(cat.weight) || 0, mean: vals.reduce((a, b) => a + b, 0) / vals.length });
+  });
+  if (!included.length) return null;
+  const wsum = included.reduce((a, c) => a + c.weight, 0);
+  if (wsum === 0) return null;
+  return Math.round(included.reduce((a, c) => a + c.mean * c.weight / wsum, 0) * 100) / 100;
+}
+
+function bandFor(comp) {
+  if (comp === null || comp === undefined) return 'Not Yet Assessed';
+  if (comp >= 4.5) return 'Excellent';
+  if (comp >= 3.5) return 'Developing Well';
+  if (comp >= 2.5) return 'Good Start';
+  if (comp >= 1.5) return 'Needs Development';
+  return 'Special Focus';
+}
+
+function getPrevMonthKey(monthKey) {
+  let [y, m] = monthKey.split('-').map(Number);
+  m -= 1; if (m < 1) { m = 12; y -= 1; }
+  return `${y}-${String(m).padStart(2, '0')}`;
+}
+
+function setupAssessEntry(ctxName) {
+  assessCtx = ASSESS_CTX[ctxName];
+  const now = new Date();
+  populateYearSelect(assessCtx.year, now.getFullYear());
+  document.getElementById(assessCtx.year).value = String(now.getFullYear());
+  document.getElementById(assessCtx.month).value = String(now.getMonth() + 1).padStart(2, '0');
+  loadAssessPlayers();
+}
+
+async function loadAssessPlayers() {
+  const group = assessGroup();
+  const sel = document.getElementById(assessCtx.player);
+  sel.innerHTML = '<option value="">- Select player -</option>';
+  assessEntryEl().innerHTML = '';
+  assessMeta = null;
+  if (!group) return;
+  const snap = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  const items = [];
+  snap.forEach(d => items.push({ id: d.id, name: d.data().name }));
+  items.sort((a, b) => a.name.localeCompare(b.name));
+  items.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; sel.appendChild(o); });
+}
+
+async function openAssessForm() {
+  const group = assessGroup();
+  const month = document.getElementById(assessCtx.month).value;
+  const year = document.getElementById(assessCtx.year).value;
+  const monthKey = `${year}-${month}`;
+  const playerId = document.getElementById(assessCtx.player).value;
+  const entry = assessEntryEl();
+  if (!playerId) { entry.innerHTML = ''; assessMeta = null; return; }
+  entry.innerHTML = '<p style="color:#999;">Loading…</p>';
+
+  const pSnap = await db.collection(ROOT).doc('players').collection(group).doc(playerId).get();
+  if (!pSnap.exists) { entry.innerHTML = '<p style="color:#e0a000;">Player not found.</p>'; return; }
+  const player = pSnap.data();
+  const positionSet = !!player.position;
+  const position = player.position || 'Outfield';
+  const rubricKey = position === 'GK' ? 'gk' : 'outfield';
+
+  const recId = `${monthKey}_${group}_${playerId}`;
+  const aSnap = await db.collection(ROOT).doc('assessments').collection('records').doc(recId).get();
+  let categories, state, notes = '', focus = '', reco = '';
+  if (aSnap.exists) {
+    const d = aSnap.data();
+    categories = d.rubricSnapshot || [];
+    state = d.ratings || {};
+    notes = d.notes || ''; focus = d.focusArea || ''; reco = d.recommendations || '';
+  } else {
+    const rSnap = await db.collection(ROOT).doc('rubrics').collection('items').doc(rubricKey).get();
+    if (!rSnap.exists) { entry.innerHTML = `<p style="color:#e0a000;">Rubric "${rubricKey}" not found. ${isAdmin ? 'Click <b>Initialize / Reset Rubrics</b> first.' : 'Ask admin to initialize the rubrics.'}</p>`; return; }
+    categories = rSnap.data().categories || [];
+    state = {};
+  }
+
+  assessMeta = { group, monthKey, playerId, playerName: player.name, position, rubricKey, positionSet };
+  assessCategories = categories;
+  assessState = { ...state };
+  renderAssessForm(notes, focus, reco, aSnap.exists);
+}
+
+function renderAssessForm(notes, focus, reco, editing) {
+  const entry = assessEntryEl();
+  const rubricLabel = assessMeta.rubricKey === 'gk' ? 'Goalkeeper' : 'Outfield';
+  let html = `<div style="border:1px solid #444;border-radius:8px;padding:16px;background:#161616;">`;
+  html += `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;">`;
+  html += `<div><b style="color:#fff;font-size:1.1rem;">${esc(assessMeta.playerName)}</b> <span style="color:#999;">· ${assessMeta.group} · ${assessMeta.monthKey} · ${rubricLabel} rubric</span>${editing ? ' <span style="color:#1f9d55;font-size:12px;">· editing saved</span>' : ''}</div>`;
+  html += `<div class="comp-box"><div class="big comp-big"></div><div class="band comp-band"></div></div>`;
+  html += `</div>`;
+  if (!assessMeta.positionSet) html += `<p style="color:#e0a000;font-size:12px;margin-bottom:10px;">⚠ Position not set for this player — using the Outfield rubric. Ask admin to set it in the Players tab if they are a goalkeeper.</p>`;
+
+  assessCategories.forEach(cat => {
+    html += `<div class="assess-cat"><div class="ch"><span>${esc(cat.name)}</span><span class="cw">${Number(cat.weight) || 0}%</span></div>`;
+    (cat.skills || []).forEach(sk => {
+      html += `<div class="assess-skill"><span class="sn">${esc(sk.name)}</span><span class="btns">`;
+      for (let v = 0; v <= 5; v++) html += `<button class="rate-btn" data-skill="${sk.key}" data-val="${v}" onclick="setRating('${sk.key}',${v})">${v}</button>`;
+      html += `<button class="rate-btn na" data-skill="${sk.key}" data-val="na" onclick="setRating('${sk.key}','na')">N/A</button>`;
+      html += `</span></div>`;
+    });
+    html += `</div>`;
+  });
+
+  html += `<h4 style="color:#FFA700;margin:14px 0 6px;">Coach notes</h4>`;
+  html += `<textarea class="assess-notes" placeholder="Strengths / observations" style="width:100%;min-height:60px;margin-bottom:8px;">${esc(notes)}</textarea>`;
+  html += `<textarea class="assess-focus" placeholder="Focus area for next cycle" style="width:100%;min-height:48px;margin-bottom:8px;">${esc(focus)}</textarea>`;
+  html += `<textarea class="assess-reco" placeholder="Recommendations" style="width:100%;min-height:48px;margin-bottom:12px;">${esc(reco)}</textarea>`;
+  html += `<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">`;
+  html += `<button class="btn-secondary" onclick="copyLastAssess()">Copy last month</button>`;
+  html += `<button class="btn-success" onclick="saveAssessment()">Save Assessment</button>`;
+  html += `</div></div>`;
+  entry.innerHTML = html;
+  refreshRateButtons();
+  updateAssessComposite();
+}
+
+function setRating(key, val) {
+  const v = (val === 'na') ? null : Number(val);
+  if (Object.prototype.hasOwnProperty.call(assessState, key) && assessState[key] === v) delete assessState[key];
+  else assessState[key] = v;
+  refreshRateButtons();
+  updateAssessComposite();
+}
+
+function refreshRateButtons() {
+  assessEntryEl().querySelectorAll('.rate-btn').forEach(b => {
+    const k = b.dataset.skill, raw = b.dataset.val;
+    const has = Object.prototype.hasOwnProperty.call(assessState, k);
+    const cur = assessState[k];
+    let sel = false;
+    if (has) sel = (raw === 'na') ? (cur === null) : (cur === Number(raw));
+    b.classList.toggle('sel', sel);
+  });
+}
+
+function updateAssessComposite() {
+  const comp = computeComposite(assessCategories, assessState);
+  const big = assessFind('.comp-big'), bd = assessFind('.comp-band');
+  if (big) big.textContent = comp === null ? '—' : comp.toFixed(2);
+  if (bd) bd.textContent = bandFor(comp);
+}
+
+async function copyLastAssess() {
+  if (!assessMeta || !assessMeta.playerId) return;
+  const prevKey = getPrevMonthKey(assessMeta.monthKey);
+  const snap = await db.collection(ROOT).doc('assessments').collection('records').doc(`${prevKey}_${assessMeta.group}_${assessMeta.playerId}`).get();
+  if (!snap.exists) { alert('No assessment found for ' + prevKey + ' to copy.'); return; }
+  const d = snap.data();
+  assessState = { ...(d.ratings || {}) };
+  const set = (cls, v) => { const e = assessFind('.' + cls); if (e && v) e.value = v; };
+  set('assess-notes', d.notes); set('assess-focus', d.focusArea); set('assess-reco', d.recommendations);
+  refreshRateButtons();
+  updateAssessComposite();
+  alert('Copied ratings from ' + prevKey + '.');
+}
+
+function assessVal(cls) { const e = assessFind('.' + cls); return e ? e.value.trim() : ''; }
+
+async function saveAssessment() {
+  if (!assessMeta || !assessMeta.playerId) { alert('Select a player first.'); return; }
+  const comp = computeComposite(assessCategories, assessState);
+  const band = bandFor(comp);
+  const snapshot = assessCategories.map(c => ({ name: c.name, weight: Number(c.weight) || 0, skills: (c.skills || []).map(s => ({ key: s.key, name: s.name })) }));
+  const now = firebase.firestore.FieldValue.serverTimestamp();
+  const ref = db.collection(ROOT).doc('assessments').collection('records').doc(`${assessMeta.monthKey}_${assessMeta.group}_${assessMeta.playerId}`);
+  const existing = await ref.get();
+  const data = {
+    monthKey: assessMeta.monthKey, group: assessMeta.group, playerId: assessMeta.playerId, playerName: assessMeta.playerName,
+    rubricKey: assessMeta.rubricKey, position: assessMeta.position, ratings: assessState,
+    notes: assessVal('assess-notes'), focusArea: assessVal('assess-focus'), recommendations: assessVal('assess-reco'),
+    composite: comp, band: band, rubricSnapshot: snapshot,
+    coach: isAdmin ? 'admin' : (currentCoach ? currentCoach.group : ''),
+    updatedAt: now
+  };
+  data.createdAt = (existing.exists && existing.data().createdAt) ? existing.data().createdAt : now;
+  try {
+    await ref.set(data);
+    alert('Assessment saved. Composite: ' + (comp === null ? '—' : comp.toFixed(2)) + ' (' + band + ')');
+  } catch (e) {
+    alert('Failed to save: ' + e.message);
+  }
+}
+
+async function loadAdminAttendance() {
+  const date = document.getElementById('adminDate').value;
+  const group = document.getElementById('adminAttAgeGroup').value;
+  
+  if (!date) return;
+  
+  const playersSnap = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  const attSnap = await db.collection(ROOT).doc('attendanceRecords').collection('records')
+    .where('date', '==', date)
+    .where('group', '==', group)
+    .get();
+  
+  const attMap = {};
+  attSnap.forEach(doc => {
+    const data = doc.data();
+    attMap[data.playerId] = data.status;
+  });
+  
+  const list = document.getElementById('adminAttendanceList');
+  list.innerHTML = '';
+  
+  playersSnap.forEach(doc => {
+    const player = doc.data();
+    const status = attMap[doc.id] || '';
+    
+    const div = document.createElement('div');
+    div.className = 'player-row';
+    div.innerHTML = `
+      <span class="player-name">${player.name}</span>
+      <button class="attendance-btn hadir ${status === 'hadir' ? 'selected' : ''}" onclick="toggleAttendance('${group}', '${doc.id}', 'hadir', this)">Present</button>
+      <button class="attendance-btn tidak ${status === 'tidak' ? 'selected' : ''}" onclick="toggleAttendance('${group}', '${doc.id}', 'tidak', this)">Absent</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+async function toggleAttendance(group, playerId, status, btn) {
+  const date = document.getElementById('adminDate').value;
+  const docId = `${date}_${group}_${playerId}`;
+  
+  await db.collection(ROOT).doc('attendanceRecords').collection('records').doc(docId).set({
+    date: date,
+    group: group,
+    playerId: playerId,
+    status: status,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  
+  const parent = btn.parentElement;
+  parent.querySelectorAll('.attendance-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+async function generateReport() {
+  const month = document.getElementById('reportMonth').value;
+  const year = document.getElementById('reportYear').value;
+  const group = document.getElementById('reportAgeGroup').value;
+  
+  const playersSnap = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  const players = [];
+  playersSnap.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
+  
+  const attSnap = await db.collection(ROOT).doc('attendanceRecords').collection('records')
+    .where('group', '==', group)
+    .get();
+  
+  const paySnap = await db.collection(ROOT).doc('feePayments').collection('records')
+    .where('month', '==', `${year}-${month}`)
+    .where('group', '==', group)
+    .get();
+  const payMap = {};
+  paySnap.forEach(doc => {
+    const data = doc.data();
+    payMap[data.playerId] = data.paid;
+  });
+  
+  const report = {};
+  players.forEach(p => {
+    report[p.id] = { name: p.name, hadir: 0, tidak: 0, absentDates: [] };
+  });
+  
+  attSnap.forEach(doc => {
+    const data = doc.data();
+    const d = data.date;
+    if (d.startsWith(`${year}-${month}`)) {
+      const playerId = data.playerId;
+      if (report[playerId]) {
+        if (data.status === 'hadir') {
+          report[playerId].hadir++;
+        } else {
+          report[playerId].tidak++;
+          if (!report[playerId].absentDates.includes(d)) {
+            report[playerId].absentDates.push(d);
+          }
+        }
+      }
+    }
+  });
+  
+  const rows = players.map(p => {
+    const r = report[p.id];
+    const total = r.hadir + r.tidak;
+    const pct = total > 0 ? Math.round((r.hadir / total) * 100) : 0;
+    const paid = p.fee === 'Scholarship' || payMap[p.id] === true;
+    return {
+      name: r.name,
+      hadir: r.hadir,
+      tidak: r.tidak,
+      pct: pct,
+      paidNum: paid ? 1 : 0,
+      fee: p.fee || '',
+      absentDates: r.absentDates.sort().join(', '),
+      absentCount: r.tidak
+    };
+  });
+  
+  let totalPaid = 0;
+  players.forEach(p => {
+    if (p.fee === 'Scholarship' || payMap[p.id] === true) {
+      if (p.fee === 'RM120') totalPaid += 120;
+      else if (p.fee === 'RM80') totalPaid += 80;
+    }
+  });
+  
+  reportRows = rows;
+  reportMeta = { month: month, year: year, group: group };
+  reportTotalPaid = totalPaid;
+  reportHeader = `<h4>Report ${month}/${year} - ${group}</h4>`;
+  reportSort = { col: -1, dir: 1 };
+  document.getElementById('reportExportBar').classList.remove('hidden');
+  setReportAudience('parents');
+}
+
+let reportRows = [];
+let reportHeader = '';
+let reportSort = { col: -1, dir: 1 };
+let reportMeta = null;
+let reportTotalPaid = 0;
+let reportAudience = 'parents';
+
+function setReportAudience(a) {
+  reportAudience = a;
+  document.getElementById('audBtnParents').classList.toggle('active', a === 'parents');
+  document.getElementById('audBtnManagement').classList.toggle('active', a === 'management');
+  renderReportTable();
+}
+
+function getSortedReportRows() {
+  const cols = ['name', 'hadir', 'tidak', 'pct', 'paidNum', 'absentCount'];
+  const rows = [...reportRows];
+  if (reportSort.col >= 0) {
+    const key = cols[reportSort.col];
+    rows.sort((a, b) => {
+      const va = a[key], vb = b[key];
+      if (typeof va === 'number') return (va - vb) * reportSort.dir;
+      return String(va).localeCompare(String(vb)) * reportSort.dir;
+    });
+  }
+  return rows;
+}
+
+function sortReportTable(col) {
+  if (reportSort.col === col) {
+    reportSort.dir = -reportSort.dir;
+  } else {
+    reportSort.col = col;
+    reportSort.dir = 1;
+  }
+  renderReportTable();
+}
+
+function formatFeeText(r) {
+  const status = r.paidNum ? 'Paid' : 'Unpaid';
+  return reportAudience === 'management' ? `${r.fee || 'not set'} - ${status}` : status;
+}
+
+function renderReportTable() {
+  const cols = ['name', 'hadir', 'tidak', 'pct', 'paidNum', 'absentCount'];
+  const headers = ['Name', 'Present', 'Absent', 'Attendance %', 'Fee Status', 'Absent Dates'];
+  const rows = getSortedReportRows();
+  
+  const arrows = cols.map((c, i) => reportSort.col === i ? (reportSort.dir === 1 ? ' ▲' : ' ▼') : '');
+  let html = reportHeader;
+  html += '<table class="report-table"><tr>' +
+    cols.map((c, i) => `<th style="cursor:pointer;user-select:none;" onclick="sortReportTable(${i})">${headers[i]}${arrows[i]}</th>`).join('') +
+    '</tr>';
+  
+  rows.forEach(r => {
+    html += `<tr>
+      <td>${r.name}</td>
+      <td>${r.hadir}</td>
+      <td class="absent">${r.tidak}</td>
+      <td>${r.pct}%</td>
+      <td style="color:${r.paidNum ? '#25D366' : '#ff6b6b'};">${formatFeeText(r)}</td>
+      <td class="absent">${r.absentDates}</td>
+    </tr>`;
+  });
+
+  if (reportAudience === 'management') {
+    html += `<tr style="font-weight:bold;border-top:2px solid #FFA700;">
+      <td colspan="4" style="text-align:right;">Total Collected (Paid)</td>
+      <td style="color:#25D366;">RM${reportTotalPaid}</td>
+      <td></td>
+    </tr>`;
+  }
+
+  html += '</table>';
+  document.getElementById('reportOutput').innerHTML = html;
+}
+
+function exportReportExcel() {
+  const m = reportMeta;
+  const mgmt = reportAudience === 'management';
+  const headers = ['Name', 'Present', 'Absent', 'Attendance %', 'Fee Status', 'Absent Dates'];
+  const data = [
+    [`Report ${m.month}/${m.year} - ${m.group}${mgmt ? ' (Management)' : ''}`],
+    [],
+    headers,
+    ...getSortedReportRows().map(r => [r.name, r.hadir, r.tidak, `${r.pct}%`, formatFeeText(r), r.absentDates])
+  ];
+  if (mgmt) {
+    data.push([], ['Total Collected (Paid)', '', '', '', `RM${reportTotalPaid}`, '']);
+  }
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{ wch: 25 }, { wch: 9 }, { wch: 9 }, { wch: 14 }, { wch: 24 }, { wch: 40 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Report');
+  XLSX.writeFile(wb, `Report_${m.group}_${m.year}-${m.month}${mgmt ? '_Management' : ''}.xlsx`);
+}
+
+function exportReportPDF() {
+  const m = reportMeta;
+  const mgmt = reportAudience === 'management';
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  doc.setFontSize(14);
+  doc.text(`Shah Alam City Academy - Report ${m.month}/${m.year} - ${m.group}${mgmt ? ' (Management)' : ''}`, 40, 40);
+  const headers = ['Name', 'Present', 'Absent', 'Attendance %', 'Fee Status', 'Absent Dates'];
+  const body = getSortedReportRows().map(r => [r.name, r.hadir, r.tidak, `${r.pct}%`, formatFeeText(r), r.absentDates]);
+  const config = {
+    head: [headers],
+    body: body,
+    startY: 60,
+    styles: { fontSize: 9, cellPadding: 4 },
+    headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+    columnStyles: {
+      0: { cellWidth: 130 },
+      1: { cellWidth: 55, halign: 'center' },
+      2: { cellWidth: 55, halign: 'center' },
+      3: { cellWidth: 80, halign: 'center' },
+      4: { cellWidth: 130 }
+    }
+  };
+  if (mgmt) {
+    config.foot = [[{ content: 'Total Collected (Paid)', colSpan: 4, styles: { halign: 'right' } }, { content: `RM${reportTotalPaid}`, styles: { halign: 'right' } }, '']];
+    config.footStyles = { fillColor: [28, 28, 28], textColor: [255, 199, 44], fontStyle: 'bold' };
+  }
+  doc.autoTable(config);
+  doc.save(`Report_${m.group}_${m.year}-${m.month}${mgmt ? '_Management' : ''}.pdf`);
+}
+
+let feeState = {};
+let feePlayerNames = {};
+
+async function loadFeeList() {
+  const group = document.getElementById('feeAgeGroup').value;
+  const month = document.getElementById('feeMonth').value;
+  const year = document.getElementById('feeYear').value;
+  const monthKey = `${year}-${month}`;
+  
+  const playersSnap = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  const paySnap = await db.collection(ROOT).doc('feePayments').collection('records')
+    .where('month', '==', monthKey)
+    .where('group', '==', group)
+    .get();
+  
+  const payMap = {};
+  paySnap.forEach(doc => {
+    const data = doc.data();
+    payMap[data.playerId] = data.paid;
+  });
+  
+  feeState = {};
+  feePlayerNames = {};
+  const list = document.getElementById('feeList');
+  list.innerHTML = '';
+  
+  playersSnap.forEach(doc => {
+    const player = doc.data();
+    const isScholarship = player.fee === 'Scholarship';
+    const paid = isScholarship || payMap[doc.id] === true;
+    feeState[doc.id] = paid;
+    feePlayerNames[doc.id] = player.name;
+    
+    const div = document.createElement('div');
+    div.className = 'player-row';
+    div.style.justifyContent = 'flex-start';
+    div.style.gap = '10px';
+    
+    const nameSpan = `<span class="player-name" style="flex:1;min-width:150px;">${player.name} <small style="color:#999;">(${isScholarship ? 'Scholarship' : (player.fee || 'fee not set')})</small></span>`;
+    const receiptBtn = paid
+      ? `<button class="btn-secondary" style="font-size:12px;padding:6px 12px;white-space:nowrap;" onclick="generateReceipt('${doc.id}','${player.name.replace(/'/g, "\\'")}','${isScholarship ? 'RM0' : (player.fee || 'RM120')}','${group}','${month}','${year}')">Receipt</button>`
+      : `<span style="display:inline-block;width:72px;"></span>`;
+    
+    if (isScholarship) {
+      div.innerHTML = `${nameSpan}<span style="color:#25D366;font-weight:600;min-width:50px;">Paid</span>${receiptBtn}`;
+    } else {
+      div.innerHTML = `${nameSpan}
+        <label class="fee-radio" style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">
+          <input type="radio" name="fee_${doc.id}" ${paid ? 'checked' : ''} onchange="feeState['${doc.id}'] = true"> Paid
+        </label>
+        <label class="fee-radio" style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">
+          <input type="radio" name="fee_${doc.id}" ${!paid ? 'checked' : ''} onchange="feeState['${doc.id}'] = false"> Unpaid
+        </label>
+        ${receiptBtn}`;
+    }
+    list.appendChild(div);
+  });
+  
+  document.getElementById('feeSaveBar').classList.toggle('hidden', playersSnap.size === 0);
+}
+
+async function saveFeePayments() {
+  const group = document.getElementById('feeAgeGroup').value;
+  const month = document.getElementById('feeMonth').value;
+  const year = document.getElementById('feeYear').value;
+  const monthKey = `${year}-${month}`;
+  
+  const batch = db.batch();
+  Object.keys(feeState).forEach(playerId => {
+    const ref = db.collection(ROOT).doc('feePayments').collection('records').doc(`${monthKey}_${group}_${playerId}`);
+    batch.set(ref, {
+      month: monthKey,
+      group: group,
+      playerId: playerId,
+      paid: feeState[playerId]
+    });
+  });
+  
+  await batch.commit();
+  alert('Payment status saved!');
+  loadFeeList();
+}
+
+function generateReceipt(playerId, playerName, feeLabel, group, month, year) {
+  const cleanName = playerName.split('/')[0].trim();
+  const feeAmount = feeLabel === 'Scholarship' ? 0 : parseInt(feeLabel.replace('RM', '')) || 120;
+  const monthNames = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthName = monthNames[parseInt(month)] || month;
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const invNum = `INV-${year}${month}-${playerId.slice(0, 4).toUpperCase()}`;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth();
+
+  // Orange header bar
+  doc.setFillColor(245, 158, 11);
+  doc.rect(0, 0, W, 130, 'F');
+
+  // SME logo image
+  doc.addImage('data:image/png;base64,' + SME_LOGO_B64, 'PNG', 40, 12, 160, 105);
+
+  // INVOICE title
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INVOICE', W - 40, 50, { align: 'right' });
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`# ${invNum}`, W - 40, 72, { align: 'right' });
+  doc.setFont('helvetica', 'bold');
+  doc.text('Balance Due', W - 40, 95, { align: 'right' });
+  doc.text('MYR0.00', W - 40, 112, { align: 'right' });
+
+  // Company info
+  let y = 155;
+  doc.setTextColor(30, 30, 30);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SACFC MANAGEMENT ENTERPRISE (202403033308)', 40, y); y += 16;
+  doc.text('[IPO593428-V]', 40, y); y += 16;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('B1-3-15, Seri Baiduri Apartment', 40, y); y += 14;
+  doc.text('Jalan Setia Gemilang U13/47 Setia Alam', 40, y); y += 14;
+  doc.text('Shah Alam Selangor 40170', 40, y); y += 14;
+  doc.text('Malaysia', 40, y); y += 14;
+  doc.text('academy@shahalamcityfc.com', 40, y);
+
+  // Bill To
+  y = 290;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(120, 120, 120);
+  doc.text('Bill To', 40, y); y += 16;
+  doc.setTextColor(30, 30, 30);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(cleanName, 40, y); y += 16;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(`Shah Alam City Academy - ${group}`, 40, y);
+
+  // Invoice dates (right side)
+  const rx = W - 40;
+  y = 290;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const labelX = rx - 110;
+  const valX = rx - 100;
+  doc.setTextColor(120, 120, 120);
+  doc.text('Invoice Date :', labelX, y, { align: 'right' });
+  doc.setTextColor(30, 30, 30);
+  doc.text(dateStr, valX, y); y += 18;
+  doc.setTextColor(120, 120, 120);
+  doc.text('Terms :', labelX, y, { align: 'right' });
+  doc.setTextColor(30, 30, 30);
+  doc.text('Due on Receipt', valX, y); y += 18;
+  doc.setTextColor(120, 120, 120);
+  doc.text('Due Date :', labelX, y, { align: 'right' });
+  doc.setTextColor(30, 30, 30);
+  doc.text(dateStr, valX, y);
+
+  // Table
+  y = 370;
+  doc.autoTable({
+    startY: y,
+    head: [['#', 'Item & Description', 'Qty', 'Rate', 'Amount']],
+    body: [[
+      '1',
+      `${monthName} Fees ${cleanName}`,
+      '1.00',
+      feeAmount.toFixed(2),
+      feeAmount.toFixed(2)
+    ]],
+    theme: 'grid',
+    headStyles: { fillColor: [55, 65, 81], textColor: 255, fontSize: 10, fontStyle: 'bold' },
+    bodyStyles: { fontSize: 10, textColor: [30, 30, 30] },
+    columnStyles: {
+      0: { cellWidth: 40, halign: 'center' },
+      2: { cellWidth: 60, halign: 'right' },
+      3: { cellWidth: 80, halign: 'right' },
+      4: { cellWidth: 80, halign: 'right' }
+    },
+    margin: { left: 40, right: 40 }
+  });
+
+  // Totals
+  y = doc.lastAutoTable.finalY + 15;
+  const tx = W - 40;
+  doc.setFontSize(10);
+  doc.setTextColor(120, 120, 120);
+  doc.text('Sub Total', tx - 80, y, { align: 'right' });
+  doc.setTextColor(30, 30, 30);
+  doc.text(feeAmount.toFixed(2), tx, y, { align: 'right' }); y += 20;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Total', tx - 80, y, { align: 'right' });
+  doc.text(`MYR${feeAmount.toFixed(2)}`, tx, y, { align: 'right' }); y += 20;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('Payment Made', tx - 80, y, { align: 'right' });
+  doc.setTextColor(200, 50, 50);
+  doc.text(`(-) ${feeAmount.toFixed(2)}`, tx, y, { align: 'right' }); y += 20;
+
+  doc.setFillColor(245, 245, 245);
+  doc.rect(tx - 160, y - 12, 160, 20, 'F');
+  doc.setTextColor(30, 30, 30);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Balance Due', tx - 80, y + 2, { align: 'right' });
+  doc.text('MYR0.00', tx, y + 2, { align: 'right' });
+
+  // Notes
+  y += 50;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('Notes', 40, y); y += 18;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
+  doc.text('Payment Made to', 40, y); y += 14;
+  doc.text('SACFC Management Enterprise', 40, y); y += 14;
+  doc.text('Bank Account: 14153010054216 (Bank Islam)', 40, y); y += 24;
+  doc.text('Thanks for your business.', 40, y);
+
+  // Footer
+  const pageH = doc.internal.pageSize.getHeight();
+  doc.setDrawColor(200, 200, 200);
+  doc.line(40, pageH - 50, W - 40, pageH - 50);
+  doc.setFontSize(8);
+  doc.setTextColor(150, 150, 150);
+  doc.setFont('helvetica', 'normal');
+  doc.text('© 2026 Shah Alam City Football Club. All rights reserved.', 40, pageH - 30);
+  const footerRight = 'One City. One Pack.';
+  doc.setTextColor(150, 150, 150);
+  doc.setFont('helvetica', 'normal');
+  const oneCityW = doc.getTextWidth('One City. ');
+  doc.text('One City. ', W - 40 - doc.getTextWidth(footerRight), pageH - 30);
+  doc.setTextColor(245, 158, 11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('One Pack.', W - 40 - doc.getTextWidth('One Pack.'), pageH - 30);
+
+  doc.save(`Receipt_${cleanName.replace(/\s+/g, '_')}_${monthName}_${year}.pdf`);
+}
+
+async function loadCoachAttendance() {
+  if (!currentCoach) return;
+  
+  const date = document.getElementById('coachDate').value;
+  const group = currentCoach.group;
+  
+  if (!date) return;
+  
+  const playersSnap = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  const attSnap = await db.collection(ROOT).doc('attendanceRecords').collection('records')
+    .where('date', '==', date)
+    .where('group', '==', group)
+    .get();
+  
+  const attMap = {};
+  attSnap.forEach(doc => {
+    const data = doc.data();
+    attMap[data.playerId] = data.status;
+  });
+  
+  attendanceState = {};
+  const list = document.getElementById('coachAttendanceList');
+  list.innerHTML = '';
+  
+  playersSnap.forEach(doc => {
+    const player = doc.data();
+    const status = attMap[doc.id] || '';
+    attendanceState[doc.id] = status;
+    
+    const div = document.createElement('div');
+    div.className = 'player-row';
+    div.innerHTML = `
+      <span class="player-name">${player.name}</span>
+      <button class="attendance-btn hadir ${status === 'hadir' ? 'selected' : ''}" onclick="coachToggleAttendance('${doc.id}', 'hadir', this)">Present</button>
+      <button class="attendance-btn tidak ${status === 'tidak' ? 'selected' : ''}" onclick="coachToggleAttendance('${doc.id}', 'tidak', this)">Absent</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function coachToggleAttendance(playerId, status, btn) {
+  attendanceState[playerId] = status;
+  
+  const parent = btn.parentElement;
+  parent.querySelectorAll('.attendance-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+async function saveCoachAttendance() {
+  if (!currentCoach) return;
+  
+  const date = document.getElementById('coachDate').value;
+  const group = currentCoach.group;
+  
+  const batch = db.batch();
+  
+  Object.keys(attendanceState).forEach(playerId => {
+    const status = attendanceState[playerId];
+    if (status) {
+      const docId = `${date}_${group}_${playerId}`;
+      const ref = db.collection(ROOT).doc('attendanceRecords').collection('records').doc(docId);
+      batch.set(ref, {
+        date: date,
+        group: group,
+        playerId: playerId,
+        status: status,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  });
+  
+  await batch.commit();
+  alert('Attendance saved!');
+}
+
+init();
+</script>
+
+</body>
+</html>
