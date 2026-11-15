@@ -466,16 +466,17 @@ const db = firebase.firestore();
 
 // ---- Environment / database namespace separation ----
 // PROD data lives under ROOT='saca'; STG (staging) data under ROOT='saca_stg' so they never mix.
-// Auto-detected from host: only the production domains are prod, everything else defaults to stg.
-// Override explicitly with ?env=prod or ?env=stg in the URL.
+// Any host that is not a production domain is staging, permanently: no query string can lift a
+// test build onto live data. ?env=stg still works on the prod domains to preview staging there.
 const PROD_HOSTS = ['apms.shahalamcityfc.com', 'shahalamcityfc.github.io'];
-function resolveEnv() {
-  const q = (new URLSearchParams(location.search).get('env') || '').toLowerCase();
-  if (q === 'stg' || q === 'test') return 'stg';
-  if (q === 'prod' || q === 'live') return 'prod';
+function isProdHost() {
   const h = (location.hostname || '').toLowerCase();
-  const isProd = PROD_HOSTS.some(d => h === d || h.endsWith('.' + d));
-  return isProd ? 'prod' : 'stg';
+  return PROD_HOSTS.some(d => h === d || h.endsWith('.' + d));
+}
+function resolveEnv() {
+  if (!isProdHost()) return 'stg';
+  const q = (new URLSearchParams(location.search).get('env') || '').toLowerCase();
+  return (q === 'stg' || q === 'test') ? 'stg' : 'prod';
 }
 const ENV = resolveEnv();
 const ROOT = ENV === 'prod' ? 'saca' : 'saca_stg';
