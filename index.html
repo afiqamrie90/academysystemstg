@@ -25,6 +25,10 @@
     header and page numbers. Coach name field added to the assessment form and saved with the assessment
   - Fixes: report month name, duplicate player options when two assessment loads overlapped, table rows no longer
     collide with the footer when a rubric is long
+  - Coaches tab (admin): register of who coaches each age group (U8-U16), saved to saca/coachStaff.
+    Club record only — it does not gate or affect coach login, which still uses the coach access code
+  - Admin Attendance is now a checking view: no Present/Absent buttons by default because coaches mark on the field.
+    "Correct as admin" checkbox reveals the buttons when a record needs fixing
   v1.13.1 (2026-11-09)
   - Coach access code: coaches must enter a code to view/mark attendance
   - Admin can set/change coach code in Players tab > Coach Access Code
@@ -96,7 +100,7 @@ tr:hover td { background: rgba(255,167,0,0.05); }
 .aud-btn.active { background: var(--gold); color: var(--black); border-color: var(--gold); }
 .site-footer { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 22px; margin-top: 25px; font-size: 0.78rem; color: var(--gray); }
 .site-footer .gold { color: var(--gold); }
-.tabs { display: flex; gap: 5px; margin-bottom: 20px; }
+.tabs { display: flex; gap: 5px; row-gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
 .tab { padding: 10px 20px; cursor: pointer; border: 1px solid #333; background: var(--dark-2); color: var(--gray-light); border-radius: 4px 4px 0 0; font-weight: 700; }
 .tab.active { background: var(--gold); color: var(--black); border-color: var(--gold); }
 hr { border: none; border-top: 1px solid #2a2a2a; }
@@ -183,6 +187,7 @@ a { color: var(--gold); }
       <div class="tab" onclick="showAdminTab('fees')">Fees</div>
       <div class="tab" onclick="showAdminTab('reports')">Reports</div>
       <div class="tab" onclick="showAdminTab('assessment')">Assessment</div>
+      <div class="tab" onclick="showAdminTab('coaches')">Coaches</div>
     </div>
 
     <div id="adminPlayers">
@@ -286,6 +291,7 @@ a { color: var(--gold); }
 
     <div id="adminAttendance" class="hidden">
       <h3>Attendance</h3>
+      <p style="color:#999;font-size:12px;margin-bottom:12px;">Coaches mark attendance on the field from the Coach page. This view is for checking records.</p>
       <input type="date" id="adminDate" onchange="loadAdminAttendance()">
       <select id="adminAttAgeGroup" onchange="loadAdminAttendance()">
         <option value="U8">U8</option>
@@ -294,6 +300,9 @@ a { color: var(--gold); }
         <option value="U14">U14</option>
         <option value="U16">U16</option>
       </select>
+      <label style="margin-left:12px;font-size:13px;color:#ccc;cursor:pointer;">
+        <input type="checkbox" id="adminAttEdit" onchange="toggleAdminAttEdit()" style="width:auto;vertical-align:middle;"> Correct as admin
+      </label>
       <div id="adminAttendanceList"></div>
     </div>
 
@@ -372,6 +381,13 @@ a { color: var(--gold); }
         <select id="assessPlayer" onchange="openAssessForm()"></select>
       </div>
       <div id="assessEntry"></div>
+    </div>
+
+    <div id="adminCoaches" class="hidden">
+      <h3>Coach Register</h3>
+      <p style="color:#999;font-size:12px;margin-bottom:15px;">Who coaches each age group — kept as a club record only. This does not control the coach login; that still uses the coach access code.</p>
+      <div id="coachRegisterList"></div>
+      <button class="btn-success" onclick="saveCoachRegister()" style="margin-top:12px;">Save</button>
     </div>
 
     <div id="adminFees" class="hidden">
@@ -631,6 +647,7 @@ function showAdminTab(tab) {
   document.getElementById('adminReports').classList.add('hidden');
   document.getElementById('adminFees').classList.add('hidden');
   document.getElementById('adminAssessment').classList.add('hidden');
+  document.getElementById('adminCoaches').classList.add('hidden');
 
   if (tab === 'players') {
     document.getElementById('adminPlayers').classList.remove('hidden');
@@ -649,6 +666,9 @@ function showAdminTab(tab) {
     document.getElementById('adminAssessment').classList.remove('hidden');
     loadRubricViewer();
     openAssessPanel('admin');
+  } else if (tab === 'coaches') {
+    document.getElementById('adminCoaches').classList.remove('hidden');
+    loadCoachRegister();
   }
 }
 
@@ -1889,10 +1909,34 @@ async function generateReportCard() {
   doc.save(`ReportCard_${safe}_${monthName}_${year}${forParents ? '' : '_Management'}.pdf`);
 }
 
+async function loadCoachRegister() {
+  const snap = await db.collection(ROOT).doc('coachStaff').get();
+  const reg = snap.exists ? snap.data() : {};
+  document.getElementById('coachRegisterList').innerHTML = AGE_GROUPS.map(g => `
+    <div class="player-row">
+      <span class="player-name">${g}</span>
+      <input type="text" data-coachgroup="${g}" value="${esc(reg[g] || '')}" placeholder="Coach name" style="flex:1;min-width:180px;">
+    </div>`).join('');
+}
+
+async function saveCoachRegister() {
+  const data = { updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+  document.querySelectorAll('#coachRegisterList [data-coachgroup]').forEach(i => {
+    data[i.dataset.coachgroup] = i.value.trim();
+  });
+  try {
+    await db.collection(ROOT).doc('coachStaff').set(data);
+    alert('Coach register saved.');
+  } catch (e) {
+    alert('Failed to save: ' + e.message);
+  }
+}
+
 async function loadAdminAttendance() {
   const date = document.getElementById('adminDate').value;
   const group = document.getElementById('adminAttAgeGroup').value;
-  
+  const editable = document.getElementById('adminAttEdit').checked;
+
   if (!date) return;
   
   const playersSnap = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
@@ -1916,14 +1960,16 @@ async function loadAdminAttendance() {
     
     const div = document.createElement('div');
     div.className = 'player-row';
-    div.innerHTML = `
-      <span class="player-name">${player.name}</span>
+    const controls = editable ? `
       <button class="attendance-btn hadir ${status === 'hadir' ? 'selected' : ''}" onclick="toggleAttendance('${group}', '${doc.id}', 'hadir', this)">Present</button>
-      <button class="attendance-btn tidak ${status === 'tidak' ? 'selected' : ''}" onclick="toggleAttendance('${group}', '${doc.id}', 'tidak', this)">Absent</button>
-    `;
+      <button class="attendance-btn tidak ${status === 'tidak' ? 'selected' : ''}" onclick="toggleAttendance('${group}', '${doc.id}', 'tidak', this)">Absent</button>` : `
+      <span style="font-size:13px;color:${status === 'hadir' ? '#25D366' : status === 'tidak' ? '#e05555' : '#999'};">${status === 'hadir' ? 'Present' : status === 'tidak' ? 'Absent' : 'Not marked'}</span>`;
+    div.innerHTML = `<span class="player-name">${player.name}</span>${controls}`;
     list.appendChild(div);
   });
 }
+
+function toggleAdminAttEdit() { loadAdminAttendance(); }
 
 async function toggleAttendance(group, playerId, status, btn) {
   const date = document.getElementById('adminDate').value;
