@@ -15,6 +15,8 @@
   - Assessment entry — Phase 3: rate each skill 0-5 or N/A, live weighted composite + band, coach notes/focus/recommendations,
     "Copy last month", saved per player per month with a rubric snapshot (past assessments never change when the rubric is edited).
     Available to admin (Assessment tab) and to coaches on their own age group (Coach page)
+  - Coach page split into two tabs (Attendance / Assessment); Back button pinned top-right like admin Logout;
+    coach tab choice now remembered across reloads; admin tab highlighting scoped to #adminView so the two tab bars don't clash
   v1.13.1 (2026-11-09)
   - Coach access code: coaches must enter a code to view/mark attendance
   - Admin can set/change coach code in Players tab > Coach Access Code
@@ -397,16 +399,23 @@ a { color: var(--gold); }
   </div>
 
   <div id="coachView" class="hidden">
-    <div style="display:inline-block;background:var(--maroon);color:var(--white);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">🏃 Coach Page</div>
-    <h3>Attendance - <span id="coachGroupDisplay"></span></h3>
-    <input type="date" id="coachDate" onchange="loadCoachAttendance()">
-    <div id="coachAttendanceList"></div>
-    <button class="btn-success" onclick="saveCoachAttendance()">Save</button>
-    <button class="btn-secondary" onclick="backToLogin()" style="margin-top:10px;">Back</button>
+    <button class="btn-secondary" onclick="backToLogin()" style="position:absolute;top:20px;right:20px;">Back</button>
+    <div style="display:inline-block;background:var(--maroon);color:var(--white);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">🏃 Coach Page · <span id="coachGroupDisplay"></span></div>
+    <div class="tabs">
+      <div class="tab active" onclick="showCoachTab('attendance')">Attendance</div>
+      <div class="tab" onclick="showCoachTab('assessment')">Assessment</div>
+    </div>
 
-    <hr style="margin:30px 0;border:none;border-top:1px solid #444;">
-    <h3>Player Assessment - <span id="coachAssessGroupDisplay"></span></h3>
-    <p style="color:var(--gray);font-size:13px;margin-bottom:10px;">Rate each skill 0-5 or mark N/A. Composite score and band compute automatically.</p>
+    <div id="coachAttendance">
+      <h3>Attendance</h3>
+      <input type="date" id="coachDate" onchange="loadCoachAttendance()">
+      <div id="coachAttendanceList"></div>
+      <button class="btn-success" onclick="saveCoachAttendance()">Save</button>
+    </div>
+
+    <div id="coachAssessment" class="hidden">
+      <h3>Player Assessment</h3>
+      <p style="color:var(--gray);font-size:13px;margin-bottom:10px;">Rate each skill 0-5 or mark N/A. Composite score and band compute automatically.</p>
     <div class="assess-bar">
       <select id="coachAssessYear"></select>
       <select id="coachAssessMonth">
@@ -426,6 +435,7 @@ a { color: var(--gold); }
       <select id="coachAssessPlayer" onchange="openAssessForm()"></select>
     </div>
     <div id="coachAssessEntry"></div>
+    </div>
   </div>
 
   <div class="site-footer">
@@ -556,13 +566,14 @@ async function coachLogin() {
 
 function setupCoachAssess() {
   if (!currentCoach) return;
-  document.getElementById('coachAssessGroupDisplay').textContent = currentCoach.group;
-  setupAssessEntry('coach');
+  showCoachTab(sessionStorage.getItem('saca_coach_tab') || 'attendance');
 }
 
 function backToLogin() {
   currentCoach = null;
+  clearAssessDrafts();
   sessionStorage.removeItem('saca_coach');
+  sessionStorage.removeItem('saca_coach_tab');
   document.getElementById('coachCode').value = '';
   document.getElementById('coachView').classList.add('hidden');
   document.getElementById('loginView').classList.remove('hidden');
@@ -586,9 +597,11 @@ async function adminLogin() {
 function logout() {
   isAdmin = false;
   currentCoach = null;
+  clearAssessDrafts();
   sessionStorage.removeItem('saca_admin');
   sessionStorage.removeItem('saca_tab');
   sessionStorage.removeItem('saca_coach');
+  sessionStorage.removeItem('saca_coach_tab');
   document.getElementById('adminView').classList.add('hidden');
   document.getElementById('coachView').classList.add('hidden');
   document.getElementById('loginView').classList.remove('hidden');
@@ -597,7 +610,7 @@ function logout() {
 }
 
 function showAdminTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => {
+  document.querySelectorAll('#adminView .tab').forEach(t => {
     t.classList.remove('active');
     if (t.textContent.toLowerCase() === tab || (tab === 'byAge' && t.textContent === 'By Age')) t.classList.add('active');
   });
@@ -626,7 +639,25 @@ function showAdminTab(tab) {
   } else if (tab === 'assessment') {
     document.getElementById('adminAssessment').classList.remove('hidden');
     loadRubricViewer();
-    setupAssessEntry('admin');
+    openAssessPanel('admin');
+  }
+}
+
+function showCoachTab(tab) {
+  document.querySelectorAll('#coachView .tab').forEach(t => {
+    t.classList.remove('active');
+    if (t.textContent.toLowerCase() === tab) t.classList.add('active');
+  });
+  sessionStorage.setItem('saca_coach_tab', tab);
+
+  document.getElementById('coachAttendance').classList.add('hidden');
+  document.getElementById('coachAssessment').classList.add('hidden');
+
+  if (tab === 'attendance') {
+    document.getElementById('coachAttendance').classList.remove('hidden');
+  } else if (tab === 'assessment') {
+    document.getElementById('coachAssessment').classList.remove('hidden');
+    openAssessPanel('coach');
   }
 }
 
@@ -1395,12 +1426,49 @@ let assessCtx = ASSESS_CTX.admin;
 let assessState = {};        // { skillKey: 0..5 | null(N/A) }; absent = untouched
 let assessCategories = [];   // rubric categories (or snapshot when editing)
 let assessMeta = null;       // { group, monthKey, playerId, playerName, position, rubricKey, positionSet }
+let assessCtxName = 'admin';
+let assessEditing = false;
+const assessDraft = {};      // ctxName -> unsaved work, so switching tabs doesn't discard it
+
+function clearAssessDrafts() {
+  delete assessDraft.admin;
+  delete assessDraft.coach;
+  assessMeta = null;
+}
 
 function assessEntryEl() { return document.getElementById(assessCtx.entry); }
 function assessGroup() {
   return assessCtx.group ? document.getElementById(assessCtx.group).value : (currentCoach ? currentCoach.group : '');
 }
 function assessFind(sel) { const e = assessEntryEl(); return e ? e.querySelector(sel) : null; }
+
+function captureAssessDraft() {  if (!assessMeta) { delete assessDraft[assessCtxName]; return; }
+  assessDraft[assessCtxName] = {
+    meta: assessMeta, categories: assessCategories, state: { ...assessState }, editing: assessEditing,
+    notes: assessVal('assess-notes'), focus: assessVal('assess-focus'), reco: assessVal('assess-reco'),
+    playerId: document.getElementById(assessCtx.player).value
+  };
+}
+
+function restoreAssessDraft() {
+  const d = assessDraft[assessCtxName];
+  if (!d) return false;
+  const monthKey = `${document.getElementById(assessCtx.year).value}-${document.getElementById(assessCtx.month).value}`;
+  if (d.meta.group !== assessGroup() || d.meta.monthKey !== monthKey) { delete assessDraft[assessCtxName]; return false; }
+  assessMeta = d.meta; assessCategories = d.categories; assessState = { ...d.state }; assessEditing = d.editing;
+  document.getElementById(assessCtx.player).value = d.playerId;
+  renderAssessForm(d.notes, d.focus, d.reco, d.editing);
+  return true;
+}
+
+// Entering an assessment panel: keep whatever is on screen if we are returning to
+// the same context/month, otherwise initialise it from scratch.
+function openAssessPanel(ctxName) {
+  captureAssessDraft();
+  assessCtxName = ctxName;
+  assessCtx = ASSESS_CTX[ctxName];
+  if (!restoreAssessDraft()) setupAssessEntry(ctxName);
+}
 
 function computeComposite(categories, ratings) {
   const included = [];
@@ -1430,7 +1498,9 @@ function getPrevMonthKey(monthKey) {
 }
 
 function setupAssessEntry(ctxName) {
+  assessCtxName = ctxName;
   assessCtx = ASSESS_CTX[ctxName];
+  delete assessDraft[ctxName];
   const now = new Date();
   populateYearSelect(assessCtx.year, now.getFullYear());
   document.getElementById(assessCtx.year).value = String(now.getFullYear());
@@ -1487,6 +1557,7 @@ async function openAssessForm() {
   assessMeta = { group, monthKey, playerId, playerName: player.name, position, rubricKey, positionSet };
   assessCategories = categories;
   assessState = { ...state };
+  assessEditing = aSnap.exists;
   renderAssessForm(notes, focus, reco, aSnap.exists);
 }
 
@@ -1585,6 +1656,7 @@ async function saveAssessment() {
   data.createdAt = (existing.exists && existing.data().createdAt) ? existing.data().createdAt : now;
   try {
     await ref.set(data);
+    assessEditing = true;
     alert('Assessment saved. Composite: ' + (comp === null ? '—' : comp.toFixed(2)) + ' (' + band + ')');
   } catch (e) {
     alert('Failed to save: ' + e.message);
