@@ -12,6 +12,8 @@
   - "Initialize / Reset Rubrics" admin action + read-only rubric viewer
   - Rubric Editor UI: admin edits categories/weights/skills inline, live 100% check, saves to Firestore (self-serve, no console)
   - STG/PROD database separation: staging data under saca_stg, prod under saca (auto by host, ?env= override, STG/PROD badge)
+  - Env override hardened: ?env=prod can no longer move a non-production host onto live data. Only the two prod domains
+    resolve to saca; ?env=stg still downgrades a prod domain for debugging. Test URLs cannot reach live data via the app.
   - Assessment entry — Phase 3: rate each skill 0-5 or N/A, live weighted composite + band, coach notes/focus/recommendations,
     "Copy last month", saved per player per month with a rubric snapshot (past assessments never change when the rubric is edited).
     Available to admin (Assessment tab) and to coaches on their own age group (Coach page)
