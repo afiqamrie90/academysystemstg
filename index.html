@@ -19,6 +19,12 @@
     Available to admin (Assessment tab) and to coaches on their own age group (Coach page)
   - Coach page split into two tabs (Attendance / Assessment); Back button pinned top-right like admin Logout;
     coach tab choice now remembered across reloads; admin tab highlighting scoped to #adminView so the two tab bars don't clash
+  - Report card PDF — Phase 4: one page per player, crest + maroon header, composite band, per-area ratings, coach narrative,
+    attendance for that month, coach-name signature line, © footer. Parent copy shows bands only (no raw 0-5 numbers);
+    Management copy adds the composite score and the full skill grid. Long feedback flows onto page 2 with a continuation
+    header and page numbers. Coach name field added to the assessment form and saved with the assessment
+  - Fixes: report month name, duplicate player options when two assessment loads overlapped, table rows no longer
+    collide with the footer when a rubric is long
   v1.13.1 (2026-11-09)
   - Coach access code: coaches must enter a code to view/mark attendance
   - Admin can set/change coach code in Players tab > Coach Access Code
@@ -1058,6 +1064,14 @@ async function renderPlayerTable() {
   }
 }
 
+function ageFromIc(ic, currentYear) {
+  if (!ic || ic.length < 2) return null;
+  const icYear = parseInt(ic.substring(0, 2), 10);
+  if (isNaN(icYear)) return null;
+  const birthYear = icYear >= 50 ? 1900 + icYear : 2000 + icYear;
+  return currentYear - birthYear;
+}
+
 async function loadByAgeView() {
   const ageGroups = ['U8', 'U10', 'U12', 'U14', 'U16'];
   const currentYear = new Date().getFullYear();
@@ -1077,13 +1091,7 @@ async function loadByAgeView() {
   // Calculate age from IC and group by age
   const ageMap = {};
   allPlayers.forEach(player => {
-    let age = null;
-    if (player.ic) {
-      const icYear = parseInt(player.ic.substring(0, 2));
-      const birthYear = icYear >= 50 ? 1900 + icYear : 2000 + icYear;
-      age = currentYear - birthYear;
-    }
-    
+    const age = ageFromIc(player.ic, currentYear);
     if (age !== null) {
       if (!ageMap[age]) ageMap[age] = [];
       ageMap[age].push(player);
@@ -1449,6 +1457,7 @@ function captureAssessDraft() {  if (!assessMeta) { delete assessDraft[assessCtx
   assessDraft[assessCtxName] = {
     meta: assessMeta, categories: assessCategories, state: { ...assessState }, editing: assessEditing,
     notes: assessVal('assess-notes'), focus: assessVal('assess-focus'), reco: assessVal('assess-reco'),
+    coachName: assessVal('assess-coachname'), audience: assessVal('report-audience'),
     playerId: document.getElementById(assessCtx.player).value
   };
 }
@@ -1460,7 +1469,8 @@ function restoreAssessDraft() {
   if (d.meta.group !== assessGroup() || d.meta.monthKey !== monthKey) { delete assessDraft[assessCtxName]; return false; }
   assessMeta = d.meta; assessCategories = d.categories; assessState = { ...d.state }; assessEditing = d.editing;
   document.getElementById(assessCtx.player).value = d.playerId;
-  renderAssessForm(d.notes, d.focus, d.reco, d.editing);
+  renderAssessForm(d.notes, d.focus, d.reco, d.editing, d.coachName);
+  if (d.audience) { const a = assessFind('.report-audience'); if (a) a.value = d.audience; }
   return true;
 }
 
@@ -1515,10 +1525,13 @@ async function loadAssessPlayers() {
   const group = assessGroup();
   const sel = document.getElementById(assessCtx.player);
   sel.innerHTML = '<option value="">- Select player -</option>';
+  // two loads can be in flight at once (tab switch + group change); only the newest may fill the list
+  const req = sel.__req = (sel.__req || 0) + 1;
   assessEntryEl().innerHTML = '';
   assessMeta = null;
   if (!group) return;
   const snap = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+  if (req !== sel.__req) return;
   const items = [];
   snap.forEach(d => items.push({ id: d.id, name: d.data().name }));
   items.sort((a, b) => a.name.localeCompare(b.name));
@@ -1544,12 +1557,13 @@ async function openAssessForm() {
 
   const recId = `${monthKey}_${group}_${playerId}`;
   const aSnap = await db.collection(ROOT).doc('assessments').collection('records').doc(recId).get();
-  let categories, state, notes = '', focus = '', reco = '';
+  let categories, state, notes = '', focus = '', reco = '', coachName = '';
   if (aSnap.exists) {
     const d = aSnap.data();
     categories = d.rubricSnapshot || [];
     state = d.ratings || {};
     notes = d.notes || ''; focus = d.focusArea || ''; reco = d.recommendations || '';
+    coachName = d.coachName || '';
   } else {
     const rSnap = await db.collection(ROOT).doc('rubrics').collection('items').doc(rubricKey).get();
     if (!rSnap.exists) { entry.innerHTML = `<p style="color:#e0a000;">Rubric "${rubricKey}" not found. ${isAdmin ? 'Click <b>Initialize / Reset Rubrics</b> first.' : 'Ask admin to initialize the rubrics.'}</p>`; return; }
@@ -1561,10 +1575,10 @@ async function openAssessForm() {
   assessCategories = categories;
   assessState = { ...state };
   assessEditing = aSnap.exists;
-  renderAssessForm(notes, focus, reco, aSnap.exists);
+  renderAssessForm(notes, focus, reco, aSnap.exists, coachName);
 }
 
-function renderAssessForm(notes, focus, reco, editing) {
+function renderAssessForm(notes, focus, reco, editing, coachName) {
   const entry = assessEntryEl();
   const rubricLabel = assessMeta.rubricKey === 'gk' ? 'Goalkeeper' : 'Outfield';
   let html = `<div style="border:1px solid #444;border-radius:8px;padding:16px;background:#161616;">`;
@@ -1589,8 +1603,12 @@ function renderAssessForm(notes, focus, reco, editing) {
   html += `<textarea class="assess-notes" placeholder="Strengths / observations" style="width:100%;min-height:60px;margin-bottom:8px;">${esc(notes)}</textarea>`;
   html += `<textarea class="assess-focus" placeholder="Focus area for next cycle" style="width:100%;min-height:48px;margin-bottom:8px;">${esc(focus)}</textarea>`;
   html += `<textarea class="assess-reco" placeholder="Recommendations" style="width:100%;min-height:48px;margin-bottom:12px;">${esc(reco)}</textarea>`;
-  html += `<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">`;
+  html += `<label style="display:block;color:#999;font-size:12px;margin-bottom:4px;">Coach name (appears on the report card signature)</label>`;
+  html += `<input type="text" class="assess-coachname" placeholder="e.g. Coach Azlan" style="width:100%;margin-bottom:14px;" value="${esc(coachName || '')}">`;
+  html += `<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;align-items:center;">`;
+  html += `<select class="report-audience" style="margin-right:auto;"><option value="parent">Parent / Coach</option><option value="management">Management</option></select>`;
   html += `<button class="btn-secondary" onclick="copyLastAssess()">Copy last month</button>`;
+  html += `<button class="btn-secondary" onclick="generateReportCard()">Download Report Card (PDF)</button>`;
   html += `<button class="btn-success" onclick="saveAssessment()">Save Assessment</button>`;
   html += `</div></div>`;
   entry.innerHTML = html;
@@ -1652,6 +1670,7 @@ async function saveAssessment() {
     monthKey: assessMeta.monthKey, group: assessMeta.group, playerId: assessMeta.playerId, playerName: assessMeta.playerName,
     rubricKey: assessMeta.rubricKey, position: assessMeta.position, ratings: assessState,
     notes: assessVal('assess-notes'), focusArea: assessVal('assess-focus'), recommendations: assessVal('assess-reco'),
+    coachName: assessVal('assess-coachname'),
     composite: comp, band: band, rubricSnapshot: snapshot,
     coach: isAdmin ? 'admin' : (currentCoach ? currentCoach.group : ''),
     updatedAt: now
@@ -1664,6 +1683,210 @@ async function saveAssessment() {
   } catch (e) {
     alert('Failed to save: ' + e.message);
   }
+}
+
+// ---- Report card PDF (Phase 4) ----
+let _crestDataUrl;
+function crestDataUrl() {
+  if (_crestDataUrl !== undefined) return Promise.resolve(_crestDataUrl);
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const size = 220, c = document.createElement('canvas');
+        c.width = size; c.height = size;
+        const ctx = c.getContext('2d');
+        const side = Math.min(img.width, img.height);
+        ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size);
+        ctx.globalCompositeOperation = 'destination-in';
+        ctx.beginPath(); ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2); ctx.fill();
+        _crestDataUrl = c.toDataURL('image/png');
+      } catch (e) { _crestDataUrl = null; }   // tainted canvas on file:// — PDF still renders, just no crest
+      resolve(_crestDataUrl);
+    };
+    img.onerror = () => { _crestDataUrl = null; resolve(null); };
+    img.src = 'logo.jpg';
+  });
+}
+
+async function monthAttendanceStats(group, monthKey, playerId) {
+  const snap = await db.collection(ROOT).doc('attendanceRecords').collection('records').where('group', '==', group).get();
+  let present = 0, absent = 0;
+  snap.forEach(d => {
+    const r = d.data();
+    if (r.playerId !== playerId) return;
+    if (!String(r.date || '').startsWith(monthKey)) return;
+    if (r.status === 'hadir') present++; else if (r.status === 'tidak') absent++;
+  });
+  return { present, absent, total: present + absent };
+}
+
+function categoryBreakdown(categories, ratings) {
+  return (categories || []).map(cat => {
+    const skills = (cat.skills || []).map(s => ({ name: s.name, val: ratings[s.key] }));
+    const nums = skills.map(s => s.val).filter(v => typeof v === 'number');
+    const mean = nums.length ? Math.round(nums.reduce((a, b) => a + b, 0) / nums.length * 100) / 100 : null;
+    return { name: cat.name, weight: Number(cat.weight) || 0, skills, mean };
+  });
+}
+
+async function generateReportCard() {
+  if (!assessMeta || !assessMeta.playerId) { alert('Select a player first.'); return; }
+
+  const audienceSel = assessFind('.report-audience');
+  const audience = audienceSel ? audienceSel.value : 'parent';
+  const forParents = audience === 'parent';
+
+  const comp = computeComposite(assessCategories, assessState);
+  const band = bandFor(comp);
+  const breakdown = categoryBreakdown(assessCategories, assessState);
+  const notes = assessVal('assess-notes'), focus = assessVal('assess-focus'), reco = assessVal('assess-reco');
+  const coachName = assessVal('assess-coachname');
+
+  const MONTH_NAMES = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+  const [year, month] = assessMeta.monthKey.split('-');
+  const monthName = MONTH_NAMES[parseInt(month)] || month;
+  const [pSnap, att, crest] = await Promise.all([
+    db.collection(ROOT).doc('players').collection(assessMeta.group).doc(assessMeta.playerId).get(),
+    monthAttendanceStats(assessMeta.group, assessMeta.monthKey, assessMeta.playerId),
+    crestDataUrl()
+  ]);
+  const player = pSnap.exists ? pSnap.data() : {};
+  const age = ageFromIc(player.ic, new Date().getFullYear());
+  const attPct = att.total ? Math.round(att.present / att.total * 100) : null;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  const M = 44;
+  const MAROON = [128, 0, 0], GOLD = [255, 167, 0], INK = [30, 30, 30], MUTED = [110, 110, 110];
+
+  // Header band
+  doc.setFillColor(...MAROON); doc.rect(0, 0, W, 104, 'F');
+  if (crest) doc.addImage(crest, 'PNG', M, 14, 76, 76);
+  doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+  doc.text('SHAH ALAM CITY ACADEMY', M + 92, 40);
+  doc.setTextColor(...GOLD); doc.setFontSize(11);
+  doc.text('Player Assessment Report', M + 92, 58);
+  doc.setTextColor(235, 220, 220); doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  doc.text(`${monthName} ${year}  ·  ${assessMeta.group}`, M + 92, 76);
+  doc.setFontSize(8); doc.text(forParents ? 'For parents & coach' : 'Management copy', W - M, 76, { align: 'right' });
+
+  // Player identity
+  let y = 132;
+  doc.setTextColor(...INK); doc.setFont('helvetica', 'bold'); doc.setFontSize(17);
+  doc.text(player.name || assessMeta.playerName, M, y); y += 18;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...MUTED);
+  const rubricName = assessMeta.rubricKey === 'gk' ? 'Goalkeeper' : 'Outfield';
+  const profileBits = [assessMeta.group, assessMeta.position, age !== null ? `Age ${age}` : null,
+    // the rubric only adds information when it doesn't just repeat the position
+    (assessMeta.position || '').toLowerCase() !== rubricName.toLowerCase() ? `${rubricName} rubric` : null];
+  doc.text(profileBits.filter(Boolean).join('   ·   '), M, y); y += 20;
+
+  // Composite panel — parents see the band in words, management also sees the number
+  doc.setFillColor(234, 243, 255); doc.roundedRect(M, y, W - M * 2, 58, 8, 8, 'F');
+  doc.setTextColor(31, 78, 143); doc.setFont('helvetica', 'bold');
+  if (forParents) {
+    doc.setFontSize(19); doc.text(band, M + 20, y + 36);
+  } else {
+    doc.setFontSize(22); doc.text(comp === null ? '—' : comp.toFixed(2), M + 20, y + 38);
+    doc.setFontSize(11); doc.text(band, M + 20 + doc.getTextWidth(comp === null ? '—' : comp.toFixed(2)) + 14, y + 37);
+  }
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...MUTED);
+  doc.text(forParents ? 'Overall development band' : 'Weighted composite (0-5) and band', W - M - 20, y + 37, { align: 'right' });
+  y += 74;
+
+  // Skills
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
+  doc.text(forParents ? 'Development by area' : 'Skill ratings', M, y); y += 8;
+
+  const tableCfg = forParents
+    ? {
+        head: [['Area', 'Emphasis', 'Rating']],
+        body: breakdown.map(c => [c.name, `${c.weight}%`, c.mean === null ? 'Not assessed' : bandFor(c.mean)]),
+        columnStyles: { 1: { halign: 'center', cellWidth: 60 }, 2: { cellWidth: 130 } }
+      }
+    : {
+        head: [['Category', 'Skill', 'Score', 'Area score']],
+        body: (() => {
+          const rows = [];
+          breakdown.forEach(c => {
+            c.skills.forEach((s, i) => {
+              rows.push([
+                i === 0 ? `${c.name} (${c.weight}%)` : '',
+                s.name,
+                s.val === null ? 'N/A' : (typeof s.val === 'number' ? String(s.val) : '—'),
+                i === 0 ? (c.mean === null ? '—' : c.mean.toFixed(2)) : ''
+              ]);
+            });
+          });
+          return rows;
+        })(),
+        columnStyles: { 0: { cellWidth: 150, fontStyle: 'bold' }, 2: { halign: 'center', cellWidth: 45 }, 3: { halign: 'center', cellWidth: 65 } }
+      };
+
+  doc.autoTable({
+    ...tableCfg, startY: y, margin: { left: M, right: M, bottom: 70 },
+    styles: { fontSize: 9, cellPadding: 5, textColor: INK, lineColor: [225, 225, 225], lineWidth: 0.5 },
+    headStyles: { fillColor: MAROON, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+    alternateRowStyles: { fillColor: [249, 247, 243] }
+  });
+  y = doc.lastAutoTable.finalY + 22;
+
+  // Coach narrative
+  const narrative = [['Strengths & observations', notes], ['Focus area for next cycle', focus], ['Recommendations', reco]];
+  if (narrative.some(([, v]) => v)) {
+    if (y > H - 190) { doc.addPage(); y = 60; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
+    doc.text('Coach feedback', M, y); y += 12;
+    narrative.forEach(([label, val]) => {
+      if (!val) return;
+      if (y > H - 120) { doc.addPage(); y = 60; }
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...INK);
+      doc.text(label.toUpperCase(), M, y); y += 12;
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(70, 70, 70);
+      doc.splitTextToSize(val, W - M * 2).forEach(line => { doc.text(line, M, y); y += 12; });
+      y += 8;
+    });
+  }
+
+  // Attendance
+  if (y > H - 110) { doc.addPage(); y = 60; }
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
+  doc.text('Attendance', M, y); y += 14;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...INK);
+  doc.text(att.total
+    ? `Present at ${att.present} of ${att.total} sessions (${attPct}%)  ·  Absent ${att.absent}`
+    : `No sessions recorded for ${monthName} ${year}.`, M, y);
+  y += 34;
+
+  // Signature
+  doc.setDrawColor(...INK); doc.line(M, y, M + 200, y);
+  doc.setFontSize(9); doc.setTextColor(...MUTED);
+  doc.text(coachName || 'Coach, Shah Alam City Academy', M, y + 14);
+  doc.text(`Issued ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, W - M, y + 14, { align: 'right' });
+
+  // Footer on every page; continuation header so a loose page is still identifiable
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    if (i > 1) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...MAROON);
+      doc.text(`${player.name || assessMeta.playerName}  ·  ${monthName} ${year}`, M, 33);
+      doc.setFont('helvetica', 'normal'); doc.setTextColor(...MUTED);
+      doc.text(`Page ${i} of ${total}`, W - M, 33, { align: 'right' });
+      doc.setDrawColor(...MAROON); doc.setLineWidth(1); doc.line(M, 40, W - M, 40); doc.setLineWidth(0.5);
+    }
+    doc.setDrawColor(200, 200, 200); doc.line(M, H - 50, W - M, H - 50);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(150, 150, 150);
+    doc.text(`© ${year} Shah Alam City Football Club. All rights reserved.`, M, H - 30);
+    if (total > 1) doc.text(`${i} / ${total}`, W / 2, H - 30, { align: 'center' });
+    doc.setFont('helvetica', 'bold'); doc.setTextColor(...GOLD);
+    doc.text('One City. One Pack.', W - M, H - 30, { align: 'right' });
+  }
+
+  const safe = (player.name || assessMeta.playerName).split('/')[0].trim().replace(/\s+/g, '_');
+  doc.save(`ReportCard_${safe}_${monthName}_${year}${forParents ? '' : '_Management'}.pdf`);
 }
 
 async function loadAdminAttendance() {
