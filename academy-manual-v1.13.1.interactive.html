@@ -33,7 +33,20 @@
   .steps > li { counter-increment: s; padding-left: 30px; position: relative; margin: 6px 0; }
   .steps > li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 21px; height: 21px; border-radius: 50%; background: var(--maroon); color: #fff; font-size: 11px; font-weight: 700; text-align: center; line-height: 21px; }
   .foot { margin-top: 30px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; display: flex; justify-content: space-between; }
-  @media print {
+  
+/*PNAV:CSS*/
+  .pnav-box { background: var(--soft); border: 1px solid var(--line); border-left: 4px solid var(--maroon); border-radius: 6px; padding: 10px 14px 12px; margin: 14px 0 4px; }
+  .pnav-title { color: var(--maroon); font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .pnav-list { columns: 2; column-gap: 24px; }
+  .pnav-i { display: flex; gap: 8px; align-items: baseline; break-inside: avoid; text-decoration: none; color: var(--ink); font-size: 11.6px; padding: 2.5px 0; border-bottom: 1px dotted #e6ded7; }
+  .pnav-i .pnav-t { flex: 1; color: #4a1010; font-weight: 600; }
+  .pnav-i .pnav-p { color: var(--muted); font-size: 10.5px; white-space: nowrap; }
+  .pnav-i:hover .pnav-t { color: var(--maroon); text-decoration: underline; }
+  .pnav-note { color: var(--muted); font-size: 11px; margin-top: 8px; }
+  .pback { text-align: right; margin: 10px 0 0; }
+  .pback a { color: #143c6b; font-size: 11px; text-decoration: none; }
+/*/PNAV:CSS*/
+@media print {
     body { font-size: 11.2px; }
     .page { max-width: none; padding: 0; }
     header { border-radius: 0; -webkit-print-color-adjust: exact; }
@@ -121,7 +134,7 @@
 
   <section class="pg" data-num="1" hidden>
     <div class="sheet">
-      <h2>1. Sistem ini apa</h2>
+      <h2 id="s1">1. Sistem ini apa</h2>
 <p>Satu halaman web untuk menguruskan <b>pemain</b>, <b>kehadiran</b>, <b>yuran bulanan</b> dan <b>laporan</b> akademi. Semua data disimpan di cloud (Firebase) — buka di PC atau iPad, data sama.</p>
 <table>
   <tr><th style="width:26%">Alamat (LIVE)</th><td><span class="path">https://apms.shahalamcityfc.com</span></td></tr>
@@ -139,7 +152,7 @@
 
   <section class="pg" data-num="2" hidden>
     <div class="sheet">
-      <h2>2. Login</h2>
+      <h2 id="s2">2. Login</h2>
 <ol class="steps">
   <li>Buka alamat di atas. Halaman pertama ada dua bahagian: <span class="ui">Admin Login</span> dan <span class="ui">Coach</span>.</li>
   <li><b>Admin:</b> taip password kelab dalam kotak <span class="ui">Password</span> → tekan <span class="ui">Login</span> (atau tekan Enter).</li>
@@ -157,7 +170,7 @@
 
   <section class="pg" data-num="3" hidden>
     <div class="sheet">
-      <h2>3. Tab Players — daftar pemain</h2>
+      <h2 id="s3">3. Tab Players — daftar pemain</h2>
 <p>Tab ini untuk tambah, betulkan dan pindah pemain. Pilih <span class="ui">Age Group</span> (U8 / U10 / U12 / U14 / U16) dahulu — semua tindakan di tab ini hanya untuk kumpulan yang dipilih.</p>
 <h3>3.1 Tambah seorang pemain</h3>
 <ol class="steps">
@@ -206,7 +219,7 @@
 
   <section class="pg" data-num="4" hidden>
     <div class="sheet">
-      <h2>4. Tab Attendance — kehadiran</h2>
+      <h2 id="s4">4. Tab Attendance — kehadiran</h2>
 <p><b>Dalam versi ini admin boleh menandakan kehadiran terus.</b> (Mulai versi ujian v1.14.0, admin hanya menyemak — coach yang menanda di padang.)</p>
 <ol class="steps">
   <li>Pilih <span class="ui">Date</span> latihan dan <span class="ui">Age Group</span>.</li>
@@ -225,7 +238,7 @@
 
   <section class="pg" data-num="5" hidden>
     <div class="sheet">
-      <h2>5. Tab Fees — pembayaran bulanan</h2>
+      <h2 id="s5">5. Tab Fees — pembayaran bulanan</h2>
 <p>Tab ini untuk menandakan <b>siapa sudah bayar untuk bulan tertentu</b> dan mengeluarkan resit. (Kategori yuran seorang pemain — RM120 / RM80 / Scholarship — ditetapkan di tab <span class="ui">Players</span>, bukan di sini.)</p>
 <ol class="steps">
   <li>Pilih <span class="ui">Age Group</span>, <span class="ui">Month</span> dan <span class="ui">Year</span> → tekan <span class="ui">Load</span>.</li>
@@ -246,7 +259,7 @@
 
   <section class="pg" data-num="6" hidden>
     <div class="sheet">
-      <h2>6. Tab Reports — laporan bulanan</h2>
+      <h2 id="s6">6. Tab Reports — laporan bulanan</h2>
 <ol class="steps">
   <li>Pilih <span class="ui">Month</span>, <span class="ui">Year</span> dan <span class="ui">Age Group</span> → tekan <span class="ui">Generate Report</span>.</li>
   <li>Laporan muncul: kehadiran setiap pemain (hadir / tidak / peratus) dan status yuran.</li>
@@ -269,7 +282,7 @@
 
   <section class="pg" data-num="7" hidden>
     <div class="sheet">
-      <h2>7. Halaman Coach (kehadiran di padang)</h2>
+      <h2 id="s7">7. Halaman Coach (kehadiran di padang)</h2>
 <p>Ini yang jurulatih guna di padang — lebih mudah daripada tab admin.</p>
 <ol class="steps">
   <li>Buka alamat yang sama → bahagian <span class="ui">Coach</span> → taip <span class="ui">Coach code</span> → <span class="ui">Start</span>.</li>
@@ -290,7 +303,7 @@
 
   <section class="pg" data-num="8" hidden>
     <div class="sheet">
-      <h2>8. Kerja rutin yang disyorkan</h2>
+      <h2 id="s8">8. Kerja rutin yang disyorkan</h2>
 <table>
   <tr><th style="width:20%">Bila</th><th>Apa</th></tr>
   <tr><td>Setiap sesi</td><td>Coach tandakan kehadiran + <span class="ui">Save</span>. Admin semak tab <span class="ui">Attendance</span> untuk tarikh itu.</td></tr>
@@ -309,7 +322,7 @@
 
   <section class="pg" data-num="9" hidden>
     <div class="sheet">
-      <h2>9. Soalan biasa</h2>
+      <h2 id="s9">9. Soalan biasa</h2>
 <table>
   <tr><th style="width:38%">Masalah</th><th>Sebab &amp; penyelesaian</th></tr>
   <tr><td>Login admin ditolak</td><td>Password salah. Minta password terkini daripada pentadbir tertinggi; sistem ini belum ada fungsi "forgot password".</td></tr>
@@ -330,7 +343,7 @@
 
   <section class="pg" data-num="10" hidden>
     <div class="sheet">
-      <h2>10. Had versi ini (untuk makluman)</h2>
+      <h2 id="s10">10. Had versi ini (untuk makluman)</h2>
 <ul>
   <li>Tiada kedudukan (GK / Outfield) untuk pemain.</li>
   <li>Tiada penilaian skill dan tiada report card untuk ibu bapa.</li>

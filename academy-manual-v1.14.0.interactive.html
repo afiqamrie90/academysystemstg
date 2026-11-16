@@ -41,7 +41,20 @@
   figcaption { color: var(--muted); font-size: 11.5px; margin-top: 6px; }
   .src { font-size: 12px; }
   .src a { color: #143c6b; }
-  @media print {
+  
+/*PNAV:CSS*/
+  .pnav-box { background: var(--soft); border: 1px solid var(--line); border-left: 4px solid var(--maroon); border-radius: 6px; padding: 10px 14px 12px; margin: 14px 0 4px; }
+  .pnav-title { color: var(--maroon); font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .pnav-list { columns: 2; column-gap: 24px; }
+  .pnav-i { display: flex; gap: 8px; align-items: baseline; break-inside: avoid; text-decoration: none; color: var(--ink); font-size: 11.6px; padding: 2.5px 0; border-bottom: 1px dotted #e6ded7; }
+  .pnav-i .pnav-t { flex: 1; color: #4a1010; font-weight: 600; }
+  .pnav-i .pnav-p { color: var(--muted); font-size: 10.5px; white-space: nowrap; }
+  .pnav-i:hover .pnav-t { color: var(--maroon); text-decoration: underline; }
+  .pnav-note { color: var(--muted); font-size: 11px; margin-top: 8px; }
+  .pback { text-align: right; margin: 10px 0 0; }
+  .pback a { color: #143c6b; font-size: 11px; text-decoration: none; }
+/*/PNAV:CSS*/
+@media print {
     body { font-size: 11.2px; }
     .page { max-width: none; padding: 0; }
     header { border-radius: 0; -webkit-print-color-adjust: exact; }
@@ -133,7 +146,7 @@
 
   <section class="pg" data-num="1" hidden>
     <div class="sheet">
-      <h2>1. Apa baru dalam v1.14.0</h2>
+      <h2 id="s1">1. Apa baru dalam v1.14.0</h2>
 <table>
   <tr><th style="width:30%">Bahagian</th><th>Perubahan</th></tr>
   <tr><td>Penilaian pemain <span class="new">BARU</span></td><td>Setiap pemain boleh dinilai setiap bulan mengikut kriteria (skill 0–5 atau N/A), skor komposit + band automatik.</td></tr>
@@ -157,7 +170,7 @@
 
   <section class="pg" data-num="2" hidden>
     <div class="sheet">
-      <h2>2. Alamat &amp; cara kenal versi</h2>
+      <h2 id="s2">2. Alamat &amp; cara kenal versi</h2>
 <table>
   <tr><th style="width:26%">Ujian (STG)</th><td><span class="path">https://afiqamrie90.github.io/academysystemstg</span> — badge <b>STG</b> kuning di bawah nama versi</td></tr>
   <tr><th>LIVE (prod)</th><td><span class="path">https://apms.shahalamcityfc.com</span> — badge <b>PROD</b>, masih v1.13.1</td></tr>
@@ -173,7 +186,7 @@
 
   <section class="pg" data-num="3" hidden>
     <div class="sheet">
-      <h2>3. Login</h2>
+      <h2 id="s3">3. Login</h2>
 <ol class="steps">
   <li>Buka alamat ujian → bahagian <span class="ui">Admin Login</span> → taip password → <span class="ui">Login</span>.</li>
   <li>Untuk coach: bahagian <span class="ui">Coach</span> → <span class="ui">Coach code</span> → <span class="ui">Start</span> → pilih kumpulan umur.</li>
@@ -190,7 +203,7 @@
 
   <section class="pg" data-num="4" hidden>
     <div class="sheet">
-      <h2>4. Tab Players</h2>
+      <h2 id="s4">4. Tab Players</h2>
 <p>Sama seperti v1.13.1 (tambah, Batch Add, Edit, Remove/Transfer, Reset kumpulan, View Details (Table), dropdown kategori yuran + <span class="ui">Save All Fee Changes</span>) dengan satu penambahan:</p>
 <h3>4.1 Position (GK / Outfield) <span class="new">BARU</span></h3>
 <ol class="steps">
@@ -209,7 +222,7 @@
 
   <section class="pg" data-num="5" hidden>
     <div class="sheet">
-      <h2>5. Tab Fees — pembayaran bulanan</h2>
+      <h2 id="s5">5. Tab Fees — pembayaran bulanan</h2>
 <p>Tiada perubahan daripada v1.13.1. Tab ini untuk menandakan <b>siapa sudah bayar untuk bulan tertentu</b> dan mengeluarkan resit. (Kategori yuran seorang pemain — RM120 / RM80 / Scholarship — ditetapkan di tab <span class="ui">Players</span>, bukan di sini.)</p>
 <ol class="steps">
   <li>Pilih <span class="ui">Age Group</span>, <span class="ui">Month</span> dan <span class="ui">Year</span> → tekan <span class="ui">Load</span>.</li>
@@ -229,7 +242,7 @@
 
   <section class="pg" data-num="6" hidden>
     <div class="sheet">
-      <h2>6. Tab Attendance — sekarang hanya semak <span class="chg">BERUBAH</span></h2>
+      <h2 id="s6">6. Tab Attendance — sekarang hanya semak <span class="chg">BERUBAH</span></h2>
 <ol class="steps">
   <li>Pilih <span class="ui">Date</span> dan <span class="ui">Age Group</span>.</li>
   <li>Sistem memaparkan status setiap pemain sebagai teks (hadir / tidak) — <b>tiada butang Present/Absent</b> kerana jurulatih yang menanda di padang.</li>
@@ -246,7 +259,7 @@
 
   <section class="pg" data-num="7" hidden>
     <div class="sheet">
-      <h2>7. Tab Assessment — Assessment Criteria <span class="new">BARU</span></h2>
+      <h2 id="s7">7. Tab Assessment — Assessment Criteria <span class="new">BARU</span></h2>
 <p>Tab ini <b>hanya</b> untuk mengurus kriteria penilaian (bukan untuk menilai pemain — itu di tab Reports).</p>
 <h3>7.1 Melihat kriteria</h3>
 <p>Setiap set dipaparkan dengan kategori, berat % dan senarai skill. Ada dua set: <b>Outfield</b> dan <b>Goalkeeper</b>. Satu set dipakai untuk semua kumpulan umur U8–U16 (kriteria ikut umur belum dibuat).</p>
@@ -268,7 +281,7 @@
 
   <section class="pg" data-num="8" hidden>
     <div class="sheet">
-      <h2>8. Tab Reports — dua mod <span class="chg">BERUBAH</span></h2>
+      <h2 id="s8">8. Tab Reports — dua mod <span class="chg">BERUBAH</span></h2>
 <h3>8.1 <span class="ui">General Report</span> (seperti dulu)</h3>
 <ol class="steps">
   <li>Pilih <span class="ui">Month</span>, <span class="ui">Year</span>, <span class="ui">Age Group</span> → <span class="ui">Generate Report</span>.</li>
@@ -297,7 +310,7 @@
 
   <section class="pg" data-num="9" hidden>
     <div class="sheet">
-      <h2>9. Apa yang ada dalam Report Card</h2>
+      <h2 id="s9">9. Apa yang ada dalam Report Card</h2>
 <p>Satu halaman A4 (hanya jadi 2 halaman kalau nota jurulatih sangat panjang), satu pemain:</p>
 <table>
   <tr><th style="width:28%">Bahagian</th><th>Isi</th></tr>
@@ -337,7 +350,7 @@
 
   <section class="pg" data-num="10" hidden>
     <div class="sheet">
-      <h2>10. Tab Coaches <span class="new">BARU</span></h2>
+      <h2 id="s10">10. Tab Coaches <span class="new">BARU</span></h2>
 <h3>10.1 Coach Register</h3>
 <ol class="steps">
   <li>Isi nama jurulatih untuk setiap kumpulan umur (U8–U16) → <span class="ui">Save</span>.</li>
@@ -360,7 +373,7 @@
 
   <section class="pg" data-num="11" hidden>
     <div class="sheet">
-      <h2>11. Halaman Coach — dua tab <span class="chg">BERUBAH</span></h2>
+      <h2 id="s11">11. Halaman Coach — dua tab <span class="chg">BERUBAH</span></h2>
 <ol class="steps">
   <li>Login guna coach code → pilih kumpulan umur. Header memaparkan kumpulan + nama jurulatih dari register.</li>
   <li>Tab <span class="ui">Attendance</span> — seperti dulu: pilih tarikh, tanda <span class="ui">Present</span> / <span class="ui">Absent</span>, tekan <span class="ui">Save</span> (wajib).</li>
@@ -379,7 +392,7 @@
 
   <section class="pg" data-num="12" hidden>
     <div class="sheet">
-      <h2>12. Kerja rutin bulanan (cadangan urutan)</h2>
+      <h2 id="s12">12. Kerja rutin bulanan (cadangan urutan)</h2>
 <table>
   <tr><th style="width:20%">Bila</th><th>Apa</th></tr>
   <tr><td>Setiap sesi</td><td>Coach tanda kehadiran + <span class="ui">Save</span>. Admin semak tab <span class="ui">Attendance</span>; guna <span class="ui">Correct as admin</span> kalau perlu betulkan.</td></tr>
@@ -399,7 +412,7 @@
 
   <section class="pg" data-num="13" hidden>
     <div class="sheet">
-      <h2>13. Soalan biasa (v1.14.0)</h2>
+      <h2 id="s13">13. Soalan biasa (v1.14.0)</h2>
 <table>
   <tr><th style="width:38%">Masalah</th><th>Sebab &amp; penyelesaian</th></tr>
   <tr><td>⚠ "Position not set for this player"</td><td>Pemain belum dipilih GK/Outfield. Sistem pakai Outfield. Betulkan di tab <span class="ui">Players</span> → <span class="ui">Edit</span>.</td></tr>
@@ -422,7 +435,7 @@
 
   <section class="pg" data-num="14" hidden>
     <div class="sheet">
-      <h2>14. Belum ada dalam versi ini</h2>
+      <h2 id="s14">14. Belum ada dalam versi ini</h2>
 <ul>
   <li>Senarai <b>sejarah</b> penilaian setiap pemain (muat semula kad bulan lama) — fasa seterusnya.</li>
   <li>Login individu untuk setiap jurulatih/admin (peraturan akses Firebase), dan akses ibu bapa.</li>
