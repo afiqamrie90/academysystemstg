@@ -26,7 +26,7 @@
     One version only — the Parents/Management split was dropped and every card carries the full numbers.
     Fits on ONE page: skills sit two per line inside each category block and attendance, coach feedback and the
     signature flow straight after the composite. Only a long coach narrative spills onto page 2, which then gets the
-    continuation header and page numbers. Coach name field added to the assessment form and saved with the assessment
+    continuation header and page numbers. Attendance record lists the actual absent dates under the Present/Absent chips. Coach name field added to the assessment form and saved with the assessment
   - Fixes: report month name, duplicate player options when two assessment loads overlapped, table rows no longer
     collide with the footer when a rubric is long
   - Report card crest fix: the club crest was cut from the PDF because it was built by drawing logo.jpg into a canvas
@@ -1773,13 +1773,15 @@ function crestDataUrl() { return Promise.resolve(CREST_DATA_URL); }
 async function monthAttendanceStats(group, monthKey, playerId) {
   const snap = await db.collection(ROOT).doc('attendanceRecords').collection('records').where('group', '==', group).get();
   let present = 0, absent = 0;
+  const absentDates = [];
   snap.forEach(d => {
     const r = d.data();
     if (r.playerId !== playerId) return;
     if (!String(r.date || '').startsWith(monthKey)) return;
-    if (r.status === 'hadir') present++; else if (r.status === 'tidak') absent++;
+    if (r.status === 'hadir') present++;
+    else if (r.status === 'tidak') { absent++; absentDates.push(r.date); }
   });
-  return { present, absent, total: present + absent };
+  return { present, absent, total: present + absent, absentDates: absentDates.sort() };
 }
 
 function categoryBreakdown(categories, ratings) {
@@ -1907,7 +1909,15 @@ async function generateReportCard() {
     doc.setFont('helvetica', 'normal'); doc.setTextColor(...MUTED);
     doc.text(`No sessions recorded for ${monthName} ${year}.`, M, y + 3);
   }
-  y += 24;
+  y += 14;
+  if (att.absentDates.length) {
+    const fmt = d => new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(...MUTED);
+    doc.splitTextToSize(`Absent on:  ${att.absentDates.map(fmt).join('  ·  ')}`, CW - 12).forEach(line => {
+      doc.text(line, M + 6, y + 2); y += 11;
+    });
+  }
+  y += 10;
 
   // Coach feedback
   const narrative = [['Strengths & observations', notes], ['Focus area for next cycle', focus], ['Recommendations', reco]];
