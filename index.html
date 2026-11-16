@@ -33,6 +33,9 @@
     The circular-masked crest is now embedded as base64 in this file, so the logo appears from any origin
   - Coaches tab (admin): register of who coaches each age group (U8-U16), saved to saca/coachStaff.
     Club record only — it does not gate or affect coach login, which still uses the coach access code
+  - Coach page: no "Download Report Card" button (report cards are admin-only), and the typed coach-name field is gone —
+    the signature name now comes from the Coaches register for that age group. The coach page header shows it too
+    ("Coach Page · U8 · Coach Azlan"); if the register is empty the card falls back to "Coach, Shah Alam City Academy"
   - Admin Attendance is now a checking view: no Present/Absent buttons by default because coaches mark on the field.
     "Correct as admin" checkbox reveals the buttons when a record needs fixing
   - Admin tab order: Players · Fees · Attendance · Assessment · Reports · Coaches
@@ -445,7 +448,7 @@ a { color: var(--gold); }
 
   <div id="coachView" class="hidden">
     <button class="btn-secondary" onclick="backToLogin()" style="position:absolute;top:20px;right:20px;">Back</button>
-    <div style="display:inline-block;background:var(--maroon);color:var(--white);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">🏃 Coach Page · <span id="coachGroupDisplay"></span></div>
+    <div style="display:inline-block;background:var(--maroon);color:var(--white);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">🏃 Coach Page · <span id="coachGroupDisplay"></span><span id="coachNameDisplay" style="text-transform:none;letter-spacing:0;font-weight:400;"></span></div>
     <div class="tabs">
       <div class="tab active" onclick="showCoachTab('attendance')">Attendance</div>
       <div class="tab" onclick="showCoachTab('assessment')">Assessment</div>
@@ -564,7 +567,7 @@ function init() {
     currentCoach = { group: group };
     document.getElementById('loginView').classList.add('hidden');
     document.getElementById('coachView').classList.remove('hidden');
-    document.getElementById('coachGroupDisplay').textContent = group;
+    setCoachHeader(group);
     loadCoachAttendance();
     setupCoachAssess();
   } else {
@@ -604,10 +607,27 @@ async function coachLogin() {
 
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('coachView').classList.remove('hidden');
-  document.getElementById('coachGroupDisplay').textContent = group;
+  setCoachHeader(group);
 
   loadCoachAttendance();
   setupCoachAssess();
+}
+
+let _coachRegister = null;
+async function coachRegister(force) {
+  if (!_coachRegister || force) {
+    const snap = await db.collection(ROOT).doc('coachStaff').get();
+    _coachRegister = snap.exists ? snap.data() : {};
+  }
+  return _coachRegister;
+}
+
+// The coach page header and the report card signature both read the name the admin
+// registered for this age group, so nobody has to type it in.
+async function setCoachHeader(group) {
+  document.getElementById('coachGroupDisplay').textContent = group;
+  const reg = await coachRegister();
+  document.getElementById('coachNameDisplay').textContent = reg[group] ? '  ·  ' + reg[group] : '  ·  coach not set';
 }
 
 function setupCoachAssess() {
@@ -1490,6 +1510,7 @@ let assessCategories = [];   // rubric categories (or snapshot when editing)
 let assessMeta = null;       // { group, monthKey, playerId, playerName, position, rubricKey, positionSet }
 let assessCtxName = 'admin';
 let assessEditing = false;
+let assessCoachName = '';      // signature name, taken from the admin coach register
 const assessDraft = {};      // ctxName -> unsaved work, so switching tabs doesn't discard it
 
 function clearAssessDrafts() {
@@ -1508,7 +1529,7 @@ function captureAssessDraft() {  if (!assessMeta) { delete assessDraft[assessCtx
   assessDraft[assessCtxName] = {
     meta: assessMeta, categories: assessCategories, state: { ...assessState }, editing: assessEditing,
     notes: assessVal('assess-notes'), focus: assessVal('assess-focus'), reco: assessVal('assess-reco'),
-    coachName: assessVal('assess-coachname'),
+    coachName: assessCoachName,
     playerId: document.getElementById(assessCtx.player).value
   };
 }
@@ -1519,6 +1540,7 @@ function restoreAssessDraft() {
   const monthKey = `${document.getElementById(assessCtx.year).value}-${document.getElementById(assessCtx.month).value}`;
   if (d.meta.group !== assessGroup() || d.meta.monthKey !== monthKey) { delete assessDraft[assessCtxName]; return false; }
   assessMeta = d.meta; assessCategories = d.categories; assessState = { ...d.state }; assessEditing = d.editing;
+  assessCoachName = d.coachName || '';
   document.getElementById(assessCtx.player).value = d.playerId;
   renderAssessForm(d.notes, d.focus, d.reco, d.editing, d.coachName);
   return true;
@@ -1625,6 +1647,10 @@ async function openAssessForm() {
   assessCategories = categories;
   assessState = { ...state };
   assessEditing = aSnap.exists;
+  // the register is the source of truth for the signature; a name saved on the record is only a
+  // fallback for groups the admin has not filled in yet
+  coachName = (await coachRegister())[group] || coachName;
+  assessCoachName = coachName;
   renderAssessForm(notes, focus, reco, aSnap.exists, coachName);
 }
 
@@ -1653,11 +1679,10 @@ function renderAssessForm(notes, focus, reco, editing, coachName) {
   html += `<textarea class="assess-notes" placeholder="Strengths / observations" style="width:100%;min-height:60px;margin-bottom:8px;">${esc(notes)}</textarea>`;
   html += `<textarea class="assess-focus" placeholder="Focus area for next cycle" style="width:100%;min-height:48px;margin-bottom:8px;">${esc(focus)}</textarea>`;
   html += `<textarea class="assess-reco" placeholder="Recommendations" style="width:100%;min-height:48px;margin-bottom:12px;">${esc(reco)}</textarea>`;
-  html += `<label style="display:block;color:#999;font-size:12px;margin-bottom:4px;">Coach name (appears on the report card signature)</label>`;
-  html += `<input type="text" class="assess-coachname" placeholder="e.g. Coach Azlan" style="width:100%;margin-bottom:14px;" value="${esc(coachName || '')}">`;
+  html += `<div style="color:#999;font-size:12px;margin-bottom:14px;">Report card signature: <b style="color:#ddd;">${esc(coachName || 'Coach, Shah Alam City Academy')}</b>${coachName ? '' : ' <span style="color:#e0a000;">— set the coach name for ' + esc(assessMeta.group) + ' in the Coaches tab</span>'}</div>`;
   html += `<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;align-items:center;">`;
   html += `<button class="btn-secondary" onclick="copyLastAssess()">Copy last month</button>`;
-  html += `<button class="btn-secondary" onclick="generateReportCard()">Download Report Card (PDF)</button>`;
+  if (assessCtxName === 'admin') html += `<button class="btn-secondary" onclick="generateReportCard()">Download Report Card (PDF)</button>`;
   html += `<button class="btn-success" onclick="saveAssessment()">Save Assessment</button>`;
   html += `</div></div>`;
   entry.innerHTML = html;
@@ -1719,7 +1744,7 @@ async function saveAssessment() {
     monthKey: assessMeta.monthKey, group: assessMeta.group, playerId: assessMeta.playerId, playerName: assessMeta.playerName,
     rubricKey: assessMeta.rubricKey, position: assessMeta.position, ratings: assessState,
     notes: assessVal('assess-notes'), focusArea: assessVal('assess-focus'), recommendations: assessVal('assess-reco'),
-    coachName: assessVal('assess-coachname'),
+    coachName: assessCoachName,
     composite: comp, band: band, rubricSnapshot: snapshot,
     coach: isAdmin ? 'admin' : (currentCoach ? currentCoach.group : ''),
     updatedAt: now
@@ -1769,7 +1794,7 @@ async function generateReportCard() {
   const band = bandFor(comp);
   const breakdown = categoryBreakdown(assessCategories, assessState);
   const notes = assessVal('assess-notes'), focus = assessVal('assess-focus'), reco = assessVal('assess-reco');
-  const coachName = assessVal('assess-coachname');
+  const coachName = assessCoachName;
 
   const MONTH_NAMES = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
   const [year, month] = assessMeta.monthKey.split('-');
@@ -1946,6 +1971,7 @@ async function saveCoachRegister() {
   });
   try {
     await db.collection(ROOT).doc('coachStaff').set(data);
+    _coachRegister = null;   // assessment forms and the coach header read the register, so drop the cached copy
     alert('Coach register saved.');
   } catch (e) {
     alert('Failed to save: ' + e.message);
