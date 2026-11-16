@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Manual INTERAKTIF v1.13.1 — dijana oleh tmp/build-interactive-manual.js daripada academy-manual-v1.13.1.html.
+     Edit isi dalam academy-manual-v1.13.1.html, kemudian jana semula. -->
+<title>Manual Penggunaan — Shah Alam City Academy v1.13.1 — versi interaktif</title>
+<style>
+  :root { --maroon: #800000; --gold: #c8860a; --ink: #222; --muted: #6b6b6b; --line: #ded6d0; --soft: #faf7f3; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); margin: 0; font-size: 13px; line-height: 1.55; }
+  .page { max-width: 820px; margin: 0 auto; padding: 28px 30px 60px; }
+  header { background: var(--maroon); color: #fff; border-radius: 10px; padding: 20px 22px; margin-bottom: 6px; }
+  header .kicker { color: var(--gold); letter-spacing: 1px; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+  header h1 { margin: 6px 0 4px; font-size: 23px; }
+  header .meta { color: #f0dcdc; font-size: 12px; }
+  .ver { display: inline-block; background: var(--gold); color: #3a2600; font-weight: 700; border-radius: 14px; padding: 2px 11px; font-size: 11px; letter-spacing: .5px; }
+  h2 { color: var(--maroon); font-size: 16px; margin: 26px 0 8px; padding-bottom: 5px; border-bottom: 2px solid var(--maroon); }
+  h3 { font-size: 13.5px; margin: 16px 0 5px; color: #4a1010; }
+  p { margin: 6px 0; }
+  ol, ul { margin: 6px 0 6px 22px; padding: 0; }
+  li { margin: 3px 0; }
+  .ui { font-weight: 700; color: #143c6b; white-space: nowrap; }
+  .path { font-family: Consolas, monospace; font-size: 11.5px; background: #f1eee9; padding: 1px 5px; border-radius: 4px; }
+  .box { background: var(--soft); border: 1px solid var(--line); border-left: 4px solid var(--maroon); border-radius: 6px; padding: 10px 14px; margin: 10px 0; }
+  .warn { border-left-color: #c17600; background: #fff8ec; }
+  .tip { border-left-color: #1f7a4d; background: #f1faf5; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12.2px; }
+  th { background: #efe7e2; color: var(--maroon); text-align: left; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; vertical-align: top; }
+  .steps { counter-reset: s; list-style: none; margin-left: 0; }
+  .steps > li { counter-increment: s; padding-left: 30px; position: relative; margin: 6px 0; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 1px; width: 21px; height: 21px; border-radius: 50%; background: var(--maroon); color: #fff; font-size: 11px; font-weight: 700; text-align: center; line-height: 21px; }
+  .foot { margin-top: 30px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; display: flex; justify-content: space-between; }
+  @media print {
+    body { font-size: 11.2px; }
+    .page { max-width: none; padding: 0; }
+    header { border-radius: 0; -webkit-print-color-adjust: exact; }
+    h2 { break-after: avoid; }
+    .box, table, ol, ul { break-inside: avoid; }
+    .newpage { break-before: page; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+<style>
+  body { background: #f3efe9; font-size: 14px; }
+  .app { max-width: 880px; margin: 0 auto; padding: 0 14px 40px; }
+  .topbar { position: sticky; top: 0; z-index: 5; background: rgba(243,239,233,.96); border-bottom: 1px solid var(--line);
+            display: flex; align-items: center; gap: 8px; padding: 10px 0; }
+  .topbar .tb-title { font-weight: 700; color: var(--maroon); font-size: 12.5px; flex: 1; min-width: 0;
+                      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-btn { font: inherit; font-size: 12.5px; font-weight: 700; color: var(--maroon); background: #fff;
+             border: 1px solid var(--line); border-radius: 8px; padding: 9px 13px; cursor: pointer; min-height: 40px; }
+  .nav-btn:hover:not(:disabled) { background: var(--soft); border-color: var(--gold); }
+  .nav-btn:disabled { opacity: .38; cursor: default; }
+  .nav-btn.primary { background: var(--maroon); color: #fff; border-color: var(--maroon); }
+  .nav-btn.primary:hover:not(:disabled) { background: #6d0000; }
+  .sheet { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px 16px;
+           box-shadow: 0 2px 10px rgba(60,40,20,.07); margin-top: 12px; }
+  .sheet .page { padding: 0; max-width: none; }
+  .pnav { display: flex; align-items: center; gap: 10px; margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .nav-mid { flex: 1; text-align: center; color: var(--muted); font-size: 12px; }
+  .home-grid { display: grid; gap: 6px; margin: 14px 0 4px; }
+  .toc-item { display: flex; gap: 11px; align-items: baseline; text-align: left; font: inherit; cursor: pointer;
+              background: #fff; border: 1px solid var(--line); border-radius: 9px; padding: 11px 13px; min-height: 44px; }
+  .toc-item:hover { border-color: var(--gold); background: var(--soft); }
+  .toc-n { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--maroon); color: #fff;
+           font-size: 11px; font-weight: 700; text-align: center; line-height: 22px; transform: translateY(4px); }
+  .toc-item span:last-child { color: var(--maroon); font-weight: 600; }
+  .toc-item .new, .toc-item .chg { pointer-events: none; }
+  .home-note { color: var(--muted); font-size: 12px; margin-top: 14px; }
+  .kbd { font-family: Consolas, monospace; background: #f1eee9; border-radius: 4px; padding: 0 5px; font-size: 11.5px; }
+  @media (max-width: 620px) { .sheet { padding: 18px 15px 12px; } .nav-btn { padding: 9px 10px; } .topbar .tb-title { font-size: 11.5px; } }
+  @media print {
+    body { background: #fff; }
+    .topbar, .pnav, .home-note, .home-grid { display: none !important; }
+    .sheet { border: 0; box-shadow: none; padding: 0; margin: 0; }
+    .pg[hidden], #home[hidden] { display: block !important; }
+    .app > section:not(:last-child) { break-after: page; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <button class="nav-btn" data-home>⌂ Home</button>
+    <div class="tb-title">Manual v1.13.1 · versi LIVE (prod)</div>
+    <button class="nav-btn" data-prev>‹</button>
+    <span class="nav-mid" id="counter">—</span>
+    <button class="nav-btn primary" data-next>›</button>
+  </div>
+
+  <section id="home" hidden>
+    <div class="sheet">
+      <header>
+  <div class="kicker">Shah Alam City Football Club · Akademi</div>
+  <h1>Manual Penggunaan — Sistem Pengurusan Pemain</h1>
+  <div class="meta"><span class="ver">v1.13.1</span> &nbsp; Versi LIVE (prod) · Untuk pentadbir kelab · Dikemas kini 16 November 2026</div>
+</header>
+      
+      <h2>Kandungan</h2>
+      <div class="home-grid">
+    <button class="toc-item" data-goto="1"><span class="toc-n">1</span><span>1. Sistem ini apa</span></button>
+    <button class="toc-item" data-goto="2"><span class="toc-n">2</span><span>2. Login</span></button>
+    <button class="toc-item" data-goto="3"><span class="toc-n">3</span><span>3. Tab Players — daftar pemain</span></button>
+    <button class="toc-item" data-goto="4"><span class="toc-n">4</span><span>4. Tab Attendance — kehadiran</span></button>
+    <button class="toc-item" data-goto="5"><span class="toc-n">5</span><span>5. Tab Fees — pembayaran bulanan</span></button>
+    <button class="toc-item" data-goto="6"><span class="toc-n">6</span><span>6. Tab Reports — laporan bulanan</span></button>
+    <button class="toc-item" data-goto="7"><span class="toc-n">7</span><span>7. Halaman Coach (kehadiran di padang)</span></button>
+    <button class="toc-item" data-goto="8"><span class="toc-n">8</span><span>8. Kerja rutin yang disyorkan</span></button>
+    <button class="toc-item" data-goto="9"><span class="toc-n">9</span><span>9. Soalan biasa</span></button>
+    <button class="toc-item" data-goto="10"><span class="toc-n">10</span><span>10. Had versi ini (untuk makluman)</span></button>
+      </div>
+      <p class="home-note">Guna butang ‹ › di atas, kekunci <span class="kbd">←</span> <span class="kbd">→</span>, atau leret (swipe) pada iPad untuk pindah muka. <span class="kbd">Home</span> kembali ke sini.</p>
+      <p class="home-note">Nak versi cetak/PDF? Tekan <span class="kbd">Ctrl</span>+<span class="kbd">P</span> — semua muka akan tercetak berturutan.</p>
+      <div class="foot"><span>© 2026 Shah Alam City Football Club</span><span>Manual v1.13.1 · pentadbir kelab · One City. One Pack.</span></div>
+    </div>
+  </section>
+
+  <section class="pg" data-num="1" hidden>
+    <div class="sheet">
+      <h2>1. Sistem ini apa</h2>
+<p>Satu halaman web untuk menguruskan <b>pemain</b>, <b>kehadiran</b>, <b>yuran bulanan</b> dan <b>laporan</b> akademi. Semua data disimpan di cloud (Firebase) — buka di PC atau iPad, data sama.</p>
+<table>
+  <tr><th style="width:26%">Alamat (LIVE)</th><td><span class="path">https://apms.shahalamcityfc.com</span></td></tr>
+  <tr><th>Peranan</th><td><b>Admin</b> (pentadbir kelab) — semua tab. <b>Coach</b> — hanya tandakan kehadiran untuk kumpulan umurnya.</td></tr>
+  <tr><th>Perlu install?</th><td>Tidak. Buka browser (Chrome / Edge / Safari) sahaja.</td></tr>
+  <tr><th>Perlu internet?</th><td>Ya. Tanpa internet data tidak dapat dimuat atau disimpan.</td></tr>
+</table>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 1 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="2" hidden>
+    <div class="sheet">
+      <h2>2. Login</h2>
+<ol class="steps">
+  <li>Buka alamat di atas. Halaman pertama ada dua bahagian: <span class="ui">Admin Login</span> dan <span class="ui">Coach</span>.</li>
+  <li><b>Admin:</b> taip password kelab dalam kotak <span class="ui">Password</span> → tekan <span class="ui">Login</span> (atau tekan Enter).</li>
+  <li><b>Coach:</b> taip <span class="ui">Coach code</span> yang diberi admin → tekan <span class="ui">Start</span> → pilih kumpulan umur.</li>
+  <li>Sesi kekal selagi tab itu dibuka — reload halaman tidak meminta login semula. Menutup tab, atau menekan <span class="ui">Logout</span> (admin) / <span class="ui">Back</span> (coach), menamatkan sesi.</li>
+</ol>
+<div class="box warn"><b>Penting (versi ini).</b> Belum ada akaun per-user. Password admin dan coach code adalah <b>satu code yang sama untuk semua</b> — siapa tahu code, siapa boleh masuk. Jangan sebarkan coach code di luar jurulatih. Menukar code: tab <span class="ui">Players</span> → bahagian bawah <span class="ui">Coach Access Code</span>.</div>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 2 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="3" hidden>
+    <div class="sheet">
+      <h2>3. Tab Players — daftar pemain</h2>
+<p>Tab ini untuk tambah, betulkan dan pindah pemain. Pilih <span class="ui">Age Group</span> (U8 / U10 / U12 / U14 / U16) dahulu — semua tindakan di tab ini hanya untuk kumpulan yang dipilih.</p>
+<h3>3.1 Tambah seorang pemain</h3>
+<ol class="steps">
+  <li>Pilih <span class="ui">Age Group</span>.</li>
+  <li>Isi baru: <span class="ui">Player name</span>, <span class="ui">No IC</span>, <span class="ui">Contact Parents</span> (telefon ibu/bapa) dan <span class="ui">Relation</span> (BAPA / IBU).</li>
+  <li>Tekan <span class="ui">Add</span>. Nama terus muncul dalam senarai.</li>
+</ol>
+<div class="box tip"><b>No IC berguna.</b> Sistem kira <b>umur sebenar</b> daripada 2 nombor pertama IC (tahun lahir). Ini yang dipakai untuk laporan dan paparan <span class="ui">By Age</span>. Pemain tanpa IC masih boleh didaftarkan, tetapi umurnya tidak dapat dikira.</div>
+<h3>3.2 Tambah ramai sekali (Batch Add)</h3>
+<ol class="steps">
+  <li>Tekan <span class="ui">Batch Add</span>.</li>
+  <li>Taip satu nama setiap baris (salin dari Excel pun boleh).</li>
+  <li>Tekan <span class="ui">Save</span> — semua nama masuk serentak.</li>
+</ol>
+<h3>3.3 Betulkan maklumat pemain</h3>
+<ol class="steps">
+  <li>Dalam senarai, tekan <span class="ui">Edit</span> pada pemain yang dimaksud.</li>
+  <li>Kemas kini nama / IC / contact / relation → <span class="ui">Save</span>.</li>
+</ol>
+<h3>3.4 Padam atau pindah pemain</h3>
+<ul>
+  <li>Tandakan kotak di depan nama (boleh ramai) → <span class="ui">Remove Selected Players</span> untuk buang, atau pilih kumpulan tujuan lalu <span class="ui">Transfer Selected Players</span> untuk pindah (contoh: U10 naik U12).</li>
+  <li><b>Naik umur tak perlu pindah satu-satu</b> — guna <span class="ui">Transfer Selected Players</span> untuk satu kumpulan penuh.</li>
+</ul>
+<div class="box warn"><b>Reset <span class="ui">U8</span> Player List</b> membuang SEMUA pemain dalam kumpulan itu (bukan seorang). Ia minta password admin. Gunakan hanya jika memang mahu kosongkan kumpulan. Sebaiknya buat senarai simpanan (salin ke Excel) sebelum reset.</div>
+<h3>3.5 Paparan lain</h3>
+<ul>
+  <li><span class="ui">View Details (Table)</span> — tukar senarai kepada jadual gaya Excel (BIL / Nama / No IC / Contact Parents / Relation / Fee / Actions).</li>
+  <li>Tab <span class="ui">By Age</span> — kelompokkan semua pemain ikut umur sebenar dari IC. (Tab ini sedang disembunyikan dalam versi ini.)</li>
+</ul>
+
+<h3>3.6 Tetapkan kategori yuran pemain</h3>
+<ol class="steps">
+  <li>Dalam senarai pemain, setiap baris ada dropdown <span class="ui">- Select fee -</span> / <b>RM120</b> / <b>RM80</b> / <b>Scholarship</b>.</li>
+  <li>Pilih kategori untuk pemain yang perlu — sebaik ada perubahan yang belum disimpan, butang <span class="ui">Save All Fee Changes</span> muncul di bawah senarai.</li>
+  <li>Tekan <span class="ui">Save All Fee Changes</span> untuk simpan semua pilihan sekali gus. Sebelum butang ini ditekan, pilihan belum masuk ke sistem.</li>
+  <li>Kategori ini yang menentukan jumlah dalam tab <span class="ui">Fees</span> dan pada resit.</li>
+</ol>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 3 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="4" hidden>
+    <div class="sheet">
+      <h2>4. Tab Attendance — kehadiran</h2>
+<p><b>Dalam versi ini admin boleh menandakan kehadiran terus.</b> (Mulai versi ujian v1.14.0, admin hanya menyemak — coach yang menanda di padang.)</p>
+<ol class="steps">
+  <li>Pilih <span class="ui">Date</span> latihan dan <span class="ui">Age Group</span>.</li>
+  <li>Senarai pemain muncul. Tekan <span class="ui">Present</span> atau <span class="ui">Absent</span> untuk setiap pemain.</li>
+  <li>Tanda yang dipilih terus disimpan — <b>tiada butang Save</b> di bahagian admin. Tekan butang lain untuk betulkan kesilapan.</li>
+  <li>Untuk lihat rekod hari lain, tukar tarikh.</li>
+</ol>
+<div class="box tip"><b>Kehadiran juga boleh ditanda oleh coach</b> melalui halaman Coach (bahagian 7). Dua-dua cara masuk ke rekod yang sama.</div>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 4 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="5" hidden>
+    <div class="sheet">
+      <h2>5. Tab Fees — pembayaran bulanan</h2>
+<p>Tab ini untuk menandakan <b>siapa sudah bayar untuk bulan tertentu</b> dan mengeluarkan resit. (Kategori yuran seorang pemain — RM120 / RM80 / Scholarship — ditetapkan di tab <span class="ui">Players</span>, bukan di sini.)</p>
+<ol class="steps">
+  <li>Pilih <span class="ui">Age Group</span>, <span class="ui">Month</span> dan <span class="ui">Year</span> → tekan <span class="ui">Load</span>.</li>
+  <li>Senarai pemain keluar bersama kategori yuran masing-masing dalam kurungan.</li>
+  <li>Tandakan <b>Paid</b> atau <b>Unpaid</b> untuk setiap pemain.</li>
+  <li>Tekan <span class="ui">Save Payment Status</span> — tanpa butang ini tanda anda tidak disimpan.</li>
+  <li>Butang <span class="ui">Receipt</span> hanya muncul pada pemain yang berstatus <b>Paid</b>. Tekan untuk muat turun resit PDF (nama, kumpulan, bulan, jumlah, tarikh issued) — sesuai dihantar kepada ibu bapa.</li>
+</ol>
+<div class="box tip"><b>Scholarship.</b> Pemain berkategori <i>Scholarship</i> dianggap <b>Paid</b> secara automatik dan tidak boleh ditukar; resit mereka terbit dengan jumlah <b>RM0</b>.</div>
+<div class="box warn">Menukar tab atau menutup browser sebelum tekan <span class="ui">Save Payment Status</span> akan kehilangan tanda yang belum disimpan.</div>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 5 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="6" hidden>
+    <div class="sheet">
+      <h2>6. Tab Reports — laporan bulanan</h2>
+<ol class="steps">
+  <li>Pilih <span class="ui">Month</span>, <span class="ui">Year</span> dan <span class="ui">Age Group</span> → tekan <span class="ui">Generate Report</span>.</li>
+  <li>Laporan muncul: kehadiran setiap pemain (hadir / tidak / peratus) dan status yuran.</li>
+  <li>Pilih audiens:
+    <ul>
+      <li><span class="ui">Parents / Coach</span> — ringkas, sesuai ditunjuk kepada ibu bapa.</li>
+      <li><span class="ui">Management</span> — lengkap dengan angka untuk pihak pengurusan.</li>
+    </ul>
+  </li>
+  <li>Tekan <span class="ui">Export to Excel (.xlsx)</span> untuk fail spreadsheet, atau <span class="ui">Export to PDF</span> untuk dokumen siap cetak.</li>
+</ol>
+<div class="box tip">Pilih audiens <b>sebelum</b> export — butang yang aktif menentukan bentuk fail yang dimuat turun.</div>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 6 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="7" hidden>
+    <div class="sheet">
+      <h2>7. Halaman Coach (kehadiran di padang)</h2>
+<p>Ini yang jurulatih guna di padang — lebih mudah daripada tab admin.</p>
+<ol class="steps">
+  <li>Buka alamat yang sama → bahagian <span class="ui">Coach</span> → taip <span class="ui">Coach code</span> → <span class="ui">Start</span>.</li>
+  <li>Pilih kumpulan umur sendiri (U8 / U10 / …).</li>
+  <li>Pilih tarikh latihan (default = hari ini).</li>
+  <li>Tekan <span class="ui">Present</span> atau <span class="ui">Absent</span> untuk setiap pemain.</li>
+  <li>Tekan <span class="ui">Save</span> — <b>wajib</b>, kalau tidak tanda tidak masuk rekod.</li>
+  <li>Selesai → tekan <span class="ui">Back</span> untuk keluar.</li>
+</ol>
+<div class="box warn"><b>Coach code dikongsi</b> oleh semua jurulatih dalam versi ini. Kalau ada jurulatih berhenti, tukar code di tab <span class="ui">Players</span> → <span class="ui">Coach Access Code</span> → <span class="ui">Save Code</span>. Kosongkan kotak dan save untuk <b>matikan</b> akses coach.</div>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 7 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="8" hidden>
+    <div class="sheet">
+      <h2>8. Kerja rutin yang disyorkan</h2>
+<table>
+  <tr><th style="width:20%">Bila</th><th>Apa</th></tr>
+  <tr><td>Setiap sesi</td><td>Coach tandakan kehadiran + <span class="ui">Save</span>. Admin semak tab <span class="ui">Attendance</span> untuk tarikh itu.</td></tr>
+  <tr><td>Awal bulan</td><td>Tab <span class="ui">Fees</span> → Load → tanda Paid/Unpaid → <span class="ui">Save Payment Status</span> → <span class="ui">Receipt</span> untuk yang sudah bayar.</td></tr>
+  <tr><td>Hujung bulan</td><td>Tab <span class="ui">Reports</span> → Generate → pilih audiens → Export Excel/PDF → hantar ke pengurusan.</td></tr>
+  <tr><td>Permulaan tahun</td><td>Tab <span class="ui">Players</span> → pindah naik kumpulan umur (Transfer Selected Players) dan buang yang berhenti.</td></tr>
+  <tr><td> Bila jurulatih bertukar</td><td>Tab <span class="ui">Players</span> → <span class="ui">Coach Access Code</span> → code baru → <span class="ui">Save Code</span>.</td></tr>
+</table>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 8 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="9" hidden>
+    <div class="sheet">
+      <h2>9. Soalan biasa</h2>
+<table>
+  <tr><th style="width:38%">Masalah</th><th>Sebab &amp; penyelesaian</th></tr>
+  <tr><td>Login admin ditolak</td><td>Password salah. Minta password terkini daripada pentadbir tertinggi; sistem ini belum ada fungsi "forgot password".</td></tr>
+  <tr><td>Coach code ditolak</td><td>Code belum ditetapkan atau sudah ditukar. Admin tetapkan di tab <span class="ui">Players</span> → <span class="ui">Coach Access Code</span>.</td></tr>
+  <tr><td>Senarai pemain kosong</td><td>Salah pilih <span class="ui">Age Group</span>, atau pemain belum didaftarkan, atau tiada internet.</td></tr>
+  <tr><td>Kehadiran tak masuk</td><td>Coach lupa tekan <span class="ui">Save</span>. Admin boleh tanda terus di tab <span class="ui">Attendance</span> sebagai pembetulan.</td></tr>
+  <tr><td>Peratus kehadiran pelik</td><td>Sesi pada tarikh lain belum ditanda, atau tarikh sesi tersilap pilih. Semak semula satu-satu tarikh.</td></tr>
+  <tr><td>Resit / laporan tak muncul</td><td>Browser blokad muat turun (check baris bawah halaman) atau popup diblok.</td></tr>
+  <tr><td>Nak buang pemain salah tempat</td><td>Guna <span class="ui">Transfer Selected Players</span>, bukan Reset. Reset membuang satu kumpulan penuh.</td></tr>
+</table>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 9 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="10" hidden>
+    <div class="sheet">
+      <h2>10. Had versi ini (untuk makluman)</h2>
+<ul>
+  <li>Tiada kedudukan (GK / Outfield) untuk pemain.</li>
+  <li>Tiada penilaian skill dan tiada report card untuk ibu bapa.</li>
+  <li>Tiada daftar nama jurulatih (coach register).</li>
+  <li>Tiada akaun login per-individu; data dilindungi oleh password/code bersama sahaja.</li>
+  <li>Semua ini sudah ada dalam <b>v1.14.0</b> yang sedang diuji — lihat manual berasingan.</li>
+</ul>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 10 / 10</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  var TOTAL = 10;
+  var home = document.getElementById('home');
+  var pages = Array.prototype.slice.call(document.querySelectorAll('.pg'));
+  var counter = document.getElementById('counter');
+
+  function current() {
+    var m = location.hash.match(/^#p(\d+)$/);
+    var n = m ? parseInt(m[1], 10) : 0;
+    return (n >= 1 && n <= TOTAL) ? n : 0;
+  }
+
+  function show(n, push) {
+    home.hidden = n !== 0;
+    pages.forEach(function (p) { p.hidden = (+p.dataset.num !== n); });
+    counter.textContent = n === 0 ? 'Muka depan' : n + ' / ' + TOTAL;
+    document.querySelectorAll('[data-prev]').forEach(function (b) { b.disabled = n <= 0; });
+    document.querySelectorAll('[data-next]').forEach(function (b) { b.disabled = n === 0 || n >= TOTAL; });
+    if (push && (location.hash || '#') !== (n === 0 ? '#' : '#p' + n)) {
+      history.pushState(null, '', n === 0 ? location.pathname + location.search : '#p' + n);
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function go(n) { show(n, true); }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-goto],[data-home],[data-prev],[data-next]');
+    if (!t) return;
+    if (t.hasAttribute('data-home')) return go(0);
+    if (t.hasAttribute('data-goto')) return go(+t.dataset.goto);
+    if (t.hasAttribute('data-prev')) return go(Math.max(0, current() - 1));
+    if (t.hasAttribute('data-next')) return go(Math.min(TOTAL, current() + 1));
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'ArrowRight') { go(Math.min(TOTAL, current() + 1)); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { go(Math.max(0, current() - 1)); e.preventDefault(); }
+    else if (e.key === 'Home' || e.key === 'Escape') { go(0); e.preventDefault(); }
+    else if (e.key === 'End') { go(TOTAL); e.preventDefault(); }
+  });
+
+  window.addEventListener('popstate', function () { show(current(), false); });
+  window.addEventListener('hashchange', function () { show(current(), false); });
+
+  var x0 = null, y0 = null;
+  document.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    if (x0 === null) return;
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = y0 = null;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) go(dx < 0 ? Math.min(TOTAL, current() + 1) : Math.max(0, current() - 1));
+  }, { passive: true });
+
+  show(current(), false);
+})();
+</script>
+</body>
+</html>
