@@ -31,8 +31,9 @@
   - Report card crest fix: the club crest was cut from the PDF because it was built by drawing logo.jpg into a canvas
     and reading it back — that readback is blocked on file://, so opening the local file produced a card with no logo.
     The circular-masked crest is now embedded as base64 in this file, so the logo appears from any origin
-  - Coaches tab (admin): register of who coaches each age group (U8-U16), saved to saca/coachStaff.
-    Club record only — it does not gate or affect coach login, which still uses the coach access code
+  - Coaches tab (admin): register of who coaches each age group (U8-U16), saved to saca/coachStaff, plus the Coach Access Code
+    section (moved here from the bottom of Players). Club record only — the register does not gate or affect coach login,
+    which still uses the coach access code
   - Coach page: no "Download Report Card" button (report cards are admin-only), and the typed coach-name field is gone —
     the signature name now comes from the Coaches register for that age group. The coach page header shows it too
     ("Coach Page · U8 · Coach Azlan"); if the register is empty the card falls back to "Coach, Shah Alam City Academy"
@@ -287,15 +288,6 @@ a { color: var(--gold); }
       <hr style="margin:20px 0;">
       <button class="btn-danger" onclick="resetAgeGroupData()">Reset <span id="resetGroupLabel">U8</span> Player List</button>
       <p style="color:#999;font-size:12px;margin-top:5px;">Removes all players in the selected age group. Requires admin password.</p>
-
-      <hr style="margin:20px 0;">
-      <h4>Coach Access Code</h4>
-      <p style="color:#999;font-size:12px;margin-bottom:8px;">Code coaches need to enter to view/mark attendance. Leave empty to disable coach access.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
-        <input type="text" id="coachCodeSetting" placeholder="Set new coach code" style="flex:1;min-width:180px;">
-        <button class="btn-success" onclick="saveCoachCode()">Save Code</button>
-      </div>
-      <p id="coachCodeStatus" style="color:#999;font-size:12px;margin-top:8px;"></p>
     </div>
 
     <div id="adminByAge" class="hidden">
@@ -412,6 +404,15 @@ a { color: var(--gold); }
       <p style="color:#999;font-size:12px;margin-bottom:15px;">Who coaches each age group — kept as a club record only. This does not control the coach login; that still uses the coach access code.</p>
       <div id="coachRegisterList"></div>
       <button class="btn-success" onclick="saveCoachRegister()" style="margin-top:12px;">Save</button>
+
+      <hr style="margin:20px 0;">
+      <h4>Coach Access Code</h4>
+      <p style="color:#999;font-size:12px;margin-bottom:8px;">Code coaches need to enter to view/mark attendance. Leave empty to disable coach access.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <input type="text" id="coachCodeSetting" placeholder="Set new coach code" style="flex:1;min-width:180px;">
+        <button class="btn-success" onclick="saveCoachCode()">Save Code</button>
+      </div>
+      <p id="coachCodeStatus" style="color:#999;font-size:12px;margin-top:8px;"></p>
     </div>
 
     <div id="adminFees" class="hidden">
@@ -794,10 +795,6 @@ async function loadAdminPlayers() {
   document.getElementById('bulkTransferBar').classList.add('hidden');
   document.getElementById('bulkDeleteBar').classList.add('hidden');
 
-  const configDoc = await db.collection(ROOT).doc('config').get();
-  const hasCoachCode = configDoc.exists && configDoc.data().coachCode;
-  document.getElementById('coachCodeStatus').textContent = hasCoachCode ? 'Coach code is active.' : 'No coach code set — coach access is disabled.';
-
   if (playerViewMode === 'table') {
     renderPlayerTable();
   }
@@ -928,12 +925,18 @@ async function resetAgeGroupData() {
   loadAdminPlayers();
 }
 
+async function refreshCoachCodeStatus() {
+  const configDoc = await db.collection(ROOT).doc('config').get();
+  const hasCoachCode = configDoc.exists && configDoc.data().coachCode;
+  document.getElementById('coachCodeStatus').textContent = hasCoachCode ? 'Coach code is active.' : 'No coach code set — coach access is disabled.';
+}
+
 async function saveCoachCode() {
   const code = document.getElementById('coachCodeSetting').value.trim();
   await db.collection(ROOT).doc('config').set({ coachCode: code }, { merge: true });
   document.getElementById('coachCodeSetting').value = '';
   document.getElementById('coachCodeStatus').textContent = code ? 'Coach code updated.' : 'Coach access disabled.';
-  setTimeout(() => { document.getElementById('coachCodeStatus').textContent = ''; }, 3000);
+  setTimeout(refreshCoachCodeStatus, 3000);
 }
 
 async function addPlayer() {
@@ -1962,6 +1965,7 @@ async function loadCoachRegister() {
       <span class="player-name">${g}</span>
       <input type="text" data-coachgroup="${g}" value="${esc(reg[g] || '')}" placeholder="Coach name" style="flex:1;min-width:180px;">
     </div>`).join('');
+  refreshCoachCodeStatus();
 }
 
 async function saveCoachRegister() {
