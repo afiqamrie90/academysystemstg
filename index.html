@@ -24,8 +24,9 @@
     area mean and its weight, per-skill rows with colour-coded N / 5 (N/A and un-rated shown differently), boxed composite
     score + band, attendance chips for that month, coach feedback blocks, signature line, © footer on every page.
     One version only — the Parents/Management split was dropped and every card carries the full numbers.
-    Page 1 = header, profile and skill ratings; attendance, coach feedback and the signature always start on page 2,
-    with a continuation header and page numbers. Coach name field added to the assessment form and saved with the assessment
+    Fits on ONE page: skills sit two per line inside each category block and attendance, coach feedback and the
+    signature flow straight after the composite. Only a long coach narrative spills onto page 2, which then gets the
+    continuation header and page numbers. Coach name field added to the assessment form and saved with the assessment
   - Fixes: report month name, duplicate player options when two assessment loads overlapped, table rows no longer
     collide with the footer when a rubric is long
   - Report card crest fix: the club crest was cut from the PDF because it was built by drawing logo.jpg into a canvas
@@ -1820,7 +1821,6 @@ async function generateReportCard() {
   const CAT_BG = [240, 232, 228], ROW_BG = [250, 248, 244], LINE = [215, 208, 202];
   let y = 0;
   const newPage = () => { doc.addPage(); y = 56; };
-  const need = h => { if (y + h > BOT) newPage(); };
   const scoreColor = v => v === null || typeof v !== 'number' ? MUTED : v >= 4 ? [31, 157, 85] : v >= 2.5 ? [196, 130, 20] : [192, 57, 43];
 
   // Header band
@@ -1850,14 +1850,15 @@ async function generateReportCard() {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...INK);
     doc.text(String(doc.splitTextToSize(String(val), colW - 16)[0]), cx, cy + 12);
   });
-  y += boxH + 24;
+  y += boxH + 18;
 
-  // Ratings — one block per category
+  // Ratings — one block per category, skills in two columns to keep the card on one page
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
   doc.text('Skill assessment', M, y); y += 10;
 
   breakdown.forEach((c, ci) => {
-    if (y + 20 + c.skills.length * 15 + 16 > BOT) newPage();
+    const rows = Math.ceil(c.skills.length / 2);
+    if (y + 20 + rows * 15 + 12 > BOT) newPage();
     doc.setFillColor(...CAT_BG); doc.rect(M, y, CW, 20, 'F');
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...MAROON);
     doc.text(`${String.fromCharCode(65 + ci)}. ${c.name}`, M + 8, y + 13.5);
@@ -1866,33 +1867,34 @@ async function generateReportCard() {
     doc.setTextColor(120, 90, 0);
     doc.text(`${c.weight}%`, W - M - 8, y + 13.5, { align: 'right' });
     y += 20;
+    for (let r = 0; r < rows; r++) {
+      if (r % 2 === 0) { doc.setFillColor(...ROW_BG); doc.rect(M, y + r * 15, CW, 15, 'F'); }
+    }
+    const halfW = CW / 2;
     c.skills.forEach((s, i) => {
-      if (y + 15 > BOT) newPage();
-      if (i % 2 === 0) { doc.setFillColor(...ROW_BG); doc.rect(M, y, CW, 15, 'F'); }
+      const ry = y + Math.floor(i / 2) * 15, cx = M + (i % 2) * halfW;
       doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
-      doc.text(s.name, M + 16, y + 10.5);
+      doc.text(String(doc.splitTextToSize(s.name, halfW - 62)[0]), cx + 16, ry + 10.5);
       doc.setFont('helvetica', 'bold'); doc.setTextColor(...scoreColor(s.val));
-      doc.text(s.val === null ? 'N/A' : typeof s.val === 'number' ? `${s.val} / 5` : '—', W - M - 54, y + 10.5, { align: 'right' });
-      y += 15;
+      doc.text(s.val === null ? 'N/A' : typeof s.val === 'number' ? `${s.val} / 5` : '—', cx + halfW - 12, ry + 10.5, { align: 'right' });
     });
+    y += rows * 15;
     doc.setDrawColor(...LINE); doc.setLineWidth(0.5); doc.line(M, y, W - M, y);
-    y += 16;
+    y += 12;
   });
 
   // Composite
-  if (y + 62 > BOT) newPage();
+  if (y + 50 > BOT) newPage();
   doc.setFillColor(234, 243, 255); doc.setDrawColor(190, 210, 235);
-  doc.roundedRect(M, y, CW, 54, 8, 8, 'FD');
-  doc.setFont('helvetica', 'bold'); doc.setTextColor(31, 78, 143); doc.setFontSize(20);
-  doc.text(comp === null ? '— / 5.00' : `${comp.toFixed(2)} / 5.00`, W / 2, y + 25, { align: 'center' });
-  doc.setFontSize(11); doc.text(band, W / 2, y + 43, { align: 'center' });
-  y += 74;
+  doc.roundedRect(M, y, CW, 40, 8, 8, 'FD');
+  doc.setFont('helvetica', 'bold'); doc.setTextColor(31, 78, 143); doc.setFontSize(16);
+  doc.text(comp === null ? '— / 5.00' : `${comp.toFixed(2)} / 5.00`, W / 2, y + 18, { align: 'center' });
+  doc.setFontSize(10); doc.text(band, W / 2, y + 32, { align: 'center' });
+  y += 50;
 
-  // Attendance record — page 2 by design: scores stay on page 1, the summary + coach
-  // narrative + signature start fresh on the next page
-  newPage();
+  // Attendance record
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
-  doc.text('Attendance record', M, y); y += 16;
+  doc.text('Attendance record', M, y); y += 14;
   doc.setFontSize(9);
   if (att.total) {
     const t1 = `Present  ${att.present} of ${att.total}  (${attPct}%)`, t2 = `Absent  ${att.absent}`;
@@ -1905,24 +1907,24 @@ async function generateReportCard() {
     doc.setFont('helvetica', 'normal'); doc.setTextColor(...MUTED);
     doc.text(`No sessions recorded for ${monthName} ${year}.`, M, y + 3);
   }
-  y += 32;
+  y += 24;
 
   // Coach feedback
   const narrative = [['Strengths & observations', notes], ['Focus area for next cycle', focus], ['Recommendations', reco]];
   if (narrative.some(([, v]) => v)) {
     if (y + 34 > BOT) newPage();
     doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
-    doc.text('Coach feedback', M, y); y += 15;
+    doc.text('Coach feedback', M, y); y += 14;
     narrative.forEach(([label, val]) => {
       if (!val) return;
       doc.setFontSize(9.5);
       const lines = doc.splitTextToSize(val, CW);
-      if (y + 12 + lines.length * 11 + 8 > BOT) newPage();
+      if (y + 12 + lines.length * 10.5 + 7 > BOT) newPage();
       doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(...INK);
-      doc.text(label.toUpperCase(), M, y); y += 12;
+      doc.text(label.toUpperCase(), M, y); y += 11;
       doc.setFont('helvetica', 'normal'); doc.setTextColor(70, 70, 70); doc.setFontSize(9.5);
-      lines.forEach(line => { doc.text(line, M, y); y += 11; });
-      y += 9;
+      lines.forEach(line => { doc.text(line, M, y); y += 10.5; });
+      y += 7;
     });
   }
 
