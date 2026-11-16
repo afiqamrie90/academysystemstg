@@ -24,8 +24,8 @@
     area mean and its weight, per-skill rows with colour-coded N / 5 (N/A and un-rated shown differently), boxed composite
     score + band, attendance chips for that month, coach feedback blocks, signature line, © footer on every page.
     One version only — the Parents/Management split was dropped and every card carries the full numbers.
-    Long content flows onto page 2 with a continuation header and page numbers. Coach name field added to the
-    assessment form and saved with the assessment
+    Page 1 = header, profile and skill ratings; attendance, coach feedback and the signature always start on page 2,
+    with a continuation header and page numbers. Coach name field added to the assessment form and saved with the assessment
   - Fixes: report month name, duplicate player options when two assessment loads overlapped, table rows no longer
     collide with the footer when a rubric is long
   - Coaches tab (admin): register of who coaches each age group (U8-U16), saved to saca/coachStaff.
@@ -1827,14 +1827,14 @@ async function generateReportCard() {
   const rubricName = assessMeta.rubricKey === 'gk' ? 'Goalkeeper' : 'Outfield';
   const profile = [['Team', assessMeta.group], ['Position', assessMeta.position || rubricName], ['Age', age === null ? '—' : String(age)],
     ['Rubric', rubricName], ['Coach', coachName || '—'], ['Cycle', `${monthName} ${year}`]];
-  const boxH = 48, colW = CW / 3;
+  const boxH = 64, colW = CW / 3;
   doc.setFillColor(248, 246, 242); doc.setDrawColor(...LINE); doc.roundedRect(M, y, CW, boxH, 5, 5, 'FD');
   profile.forEach(([label, val], i) => {
-    const cx = M + (i % 3) * colW + 12, cy = y + 18 + Math.floor(i / 3) * 22;
+    const cx = M + (i % 3) * colW + 12, cy = y + 17 + Math.floor(i / 3) * 27;
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(...MUTED);
     doc.text(label.toUpperCase(), cx, cy);
     doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...INK);
-    doc.text(String(doc.splitTextToSize(String(val), colW - 16)[0]), cx, cy + 11);
+    doc.text(String(doc.splitTextToSize(String(val), colW - 16)[0]), cx, cy + 12);
   });
   y += boxH + 24;
 
@@ -1874,8 +1874,9 @@ async function generateReportCard() {
   doc.setFontSize(11); doc.text(band, W / 2, y + 43, { align: 'center' });
   y += 74;
 
-  // Attendance record
-  if (y + 40 > BOT) newPage();
+  // Attendance record — page 2 by design: scores stay on page 1, the summary + coach
+  // narrative + signature start fresh on the next page
+  newPage();
   doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...MAROON);
   doc.text('Attendance record', M, y); y += 16;
   doc.setFontSize(9);
