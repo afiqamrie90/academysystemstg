@@ -20,7 +20,7 @@
   - Coach page split into two tabs (Attendance / Assessment); Logout button pinned top-right like admin Logout;
     coach tab choice now remembered across reloads; admin tab highlighting scoped to #adminView so the two tab bars don't clash
   - Report card PDF — Phase 4: one card per player in the Real Chukai layout (not a grid table) — crest + maroon header,
-    player name, profile box (Team / Position / Age / Rubric / Coach / Cycle), lettered area bars (A-D) each showing the
+    player name, profile box (Team / Position / Age / Criteria / Coach / Cycle), lettered area bars (A-D) each showing the
     area mean and its weight, per-skill rows with colour-coded N / 5 (N/A and un-rated shown differently), boxed composite
     score + band, attendance chips for that month, coach feedback blocks, signature line, © footer on every page.
     One version only — the Parents/Management split was dropped and every card carries the full numbers.
@@ -41,11 +41,15 @@
   - Admin Attendance is now a checking view: no Present/Absent buttons by default because coaches mark on the field.
     "Correct as admin" checkbox reveals the buttons when a record needs fixing
   - Admin tab order: Players · Fees · Attendance · Assessment · Reports · Coaches
-  - Assessment tab is rubric-only now (viewer, Rubric Editor, Initialize/Reset). Player assessment entry + report card
+  - Assessment tab holds the criteria only (viewer, editor, Initialize/Reset). Player assessment entry + report card
     download moved into the Reports tab
   - Reports tab has two modes — "General Report" (the existing monthly attendance/fee report with its Parents/Management
     toggle and Excel/PDF export) and "Player Report Card" (pick group / month / player, open the saved assessment,
     download the card PDF)
+  - Wording: "Rubric(s)" is now "Assessment Criteria" wherever it is visible — the Assessment tab heading, Initialize /
+    Reset Criteria, the Criteria Editor's Save button, viewer labels ("Goalkeeper criteria"), the alerts, the assessment
+    form line and the report card profile box. Internal names and the Firestore `rubrics/items` path are untouched, so
+    existing criteria and saved assessment snapshots keep loading unchanged
   v1.13.1 (2026-11-09)
   - Coach access code: coaches must enter a code to view/mark attendance
   - Admin can set/change coach code in Players tab > Coach Access Code
@@ -391,11 +395,11 @@ a { color: var(--gold); }
     </div>
 
     <div id="adminAssessment" class="hidden">
-      <h3>Assessment Rubrics</h3>
-      <p style="color:#999;font-size:12px;margin-bottom:15px;">Position-based rubric used for monthly player reports. One rubric applies to all age groups (U8–U16).</p>
+      <h3>Assessment Criteria</h3>
+      <p style="color:#999;font-size:12px;margin-bottom:15px;">Position-based criteria used for monthly player reports. The same set applies to all age groups (U8–U16).</p>
       <div style="margin-bottom:15px;">
-        <button class="btn-success" onclick="seedRubrics()">Initialize / Reset Rubrics</button>
-        <span style="color:#999;font-size:12px;margin-left:10px;">Writes the default GK &amp; Outfield rubrics. Overwrites existing.</span>
+        <button class="btn-success" onclick="seedRubrics()">Initialize / Reset Criteria</button>
+        <span style="color:#999;font-size:12px;margin-left:10px;">Writes the default GK &amp; Outfield criteria. Overwrites existing.</span>
       </div>
       <div id="rubricViewer"></div>
     </div>
@@ -1294,16 +1298,16 @@ const RUBRIC_SEED = {
 };
 
 async function seedRubrics() {
-  if (!confirm('This writes the default GK & Outfield rubrics and OVERWRITES any existing rubric data. Continue?')) return;
+  if (!confirm('This writes the default GK & Outfield criteria and OVERWRITES any existing criteria data. Continue?')) return;
   try {
     const now = firebase.firestore.FieldValue.serverTimestamp();
     const rubricsRef = db.collection(ROOT).doc('rubrics').collection('items');
     await rubricsRef.doc('outfield').set({ ...RUBRIC_SEED.outfield, updatedAt: now });
     await rubricsRef.doc('gk').set({ ...RUBRIC_SEED.gk, updatedAt: now });
-    alert('Rubrics initialized.');
+    alert('Assessment criteria initialized.');
     loadRubricViewer();
   } catch (e) {
-    alert('Failed to seed rubrics: ' + e.message);
+    alert('Failed to save criteria: ' + e.message);
   }
 }
 
@@ -1313,7 +1317,7 @@ function esc(s) {
 
 async function loadRubricViewer() {
   const container = document.getElementById('rubricViewer');
-  container.innerHTML = '<p style="color:#999;">Loading rubrics…</p>';
+  container.innerHTML = '<p style="color:#999;">Loading criteria…</p>';
   const rubricsRef = db.collection(ROOT).doc('rubrics').collection('items');
   let loaded = 0, missing = 0;
   let html = '';
@@ -1325,7 +1329,7 @@ async function loadRubricViewer() {
     const r = snap.data();
     html += `<div style="border:1px solid #444;border-radius:8px;padding:16px;margin-bottom:16px;background:#161616;">`;
     html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">`;
-    html += `<h4 style="color:#FFA700;">${esc(r.label || key)} rubric</h4>`;
+    html += `<h4 style="color:#FFA700;">${esc(r.label || key)} criteria</h4>`;
     html += `<button class="btn-primary" style="font-size:12px;padding:6px 12px;margin:0;" onclick="editRubric('${key}')">✏️ Edit</button>`;
     html += `</div>`;
     (r.categories || []).forEach(cat => {
@@ -1342,9 +1346,9 @@ async function loadRubricViewer() {
   }
 
   if (loaded === 0) {
-    container.innerHTML = '<p style="color:#999;">No rubrics found. Click <b>Initialize / Reset Rubrics</b> to create them.</p>';
+    container.innerHTML = '<p style="color:#999;">No criteria found. Click <b>Initialize / Reset Criteria</b> to create them.</p>';
   } else {
-    container.innerHTML = html + (missing ? `<p style="color:#e0a000;font-size:12px;">${missing} rubric(s) missing — click Initialize to create all.</p>` : '');
+    container.innerHTML = html + (missing ? `<p style="color:#e0a000;font-size:12px;">${missing} criteria set(s) missing — click Initialize to create all.</p>` : '');
   }
 }
 
@@ -1362,7 +1366,7 @@ function genRubricKey(base, taken) {
 
 async function editRubric(key) {
   const snap = await db.collection(ROOT).doc('rubrics').collection('items').doc(key).get();
-  if (!snap.exists) { alert('Rubric not found. Click Initialize first.'); return; }
+  if (!snap.exists) { alert('Criteria not found. Click Initialize first.'); return; }
   const r = snap.data();
   rubricEditKey = key;
   const taken = new Set();
@@ -1418,7 +1422,7 @@ function renderRubricEditor() {
   html += `<button class="btn-secondary" style="font-size:12px;padding:6px 12px;margin:0 0 12px 0;" onclick="rubricAddCategory()">+ Add category</button>`;
   html += `<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">`;
   html += `<button class="btn-secondary" onclick="cancelRubricEdit()">Cancel</button>`;
-  html += `<button class="btn-success" onclick="saveRubric()">Save Rubric</button>`;
+  html += `<button class="btn-success" onclick="saveRubric()">Save Criteria</button>`;
   html += `</div>`;
   html += `</div>`;
   container.innerHTML = html;
@@ -1467,7 +1471,7 @@ function cancelRubricEdit() {
 async function saveRubric() {
   if (!rubricEdit || !rubricEditKey) return;
   const cats = rubricEdit.categories;
-  if (!cats || cats.length === 0) { alert('Rubric must have at least one category.'); return; }
+  if (!cats || cats.length === 0) { alert('Criteria must have at least one category.'); return; }
   const seen = new Set();
   for (let ci = 0; ci < cats.length; ci++) {
     const c = cats[ci];
@@ -1493,7 +1497,7 @@ async function saveRubric() {
       updatedAt: now
     };
     await db.collection(ROOT).doc('rubrics').collection('items').doc(rubricEditKey).set(payload);
-    alert('Rubric saved.');
+    alert('Criteria saved.');
     rubricEdit = null; rubricEditKey = null;
     loadRubricViewer();
   } catch (e) {
@@ -1642,7 +1646,7 @@ async function openAssessForm() {
     coachName = d.coachName || '';
   } else {
     const rSnap = await db.collection(ROOT).doc('rubrics').collection('items').doc(rubricKey).get();
-    if (!rSnap.exists) { entry.innerHTML = `<p style="color:#e0a000;">Rubric "${rubricKey}" not found. ${isAdmin ? 'Click <b>Initialize / Reset Rubrics</b> first.' : 'Ask admin to initialize the rubrics.'}</p>`; return; }
+    if (!rSnap.exists) { entry.innerHTML = `<p style="color:#e0a000;">Criteria "${rubricKey}" not found. ${isAdmin ? 'Click <b>Initialize / Reset Criteria</b> first.' : 'Ask admin to initialize the criteria.'}</p>`; return; }
     categories = rSnap.data().categories || [];
     state = {};
   }
@@ -1663,10 +1667,10 @@ function renderAssessForm(notes, focus, reco, editing, coachName) {
   const rubricLabel = assessMeta.rubricKey === 'gk' ? 'Goalkeeper' : 'Outfield';
   let html = `<div style="border:1px solid #444;border-radius:8px;padding:16px;background:#161616;">`;
   html += `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;">`;
-  html += `<div><b style="color:#fff;font-size:1.1rem;">${esc(assessMeta.playerName)}</b> <span style="color:#999;">· ${assessMeta.group} · ${assessMeta.monthKey} · ${rubricLabel} rubric</span>${editing ? ' <span style="color:#1f9d55;font-size:12px;">· editing saved</span>' : ''}</div>`;
+  html += `<div><b style="color:#fff;font-size:1.1rem;">${esc(assessMeta.playerName)}</b> <span style="color:#999;">· ${assessMeta.group} · ${assessMeta.monthKey} · ${rubricLabel} criteria</span>${editing ? ' <span style="color:#1f9d55;font-size:12px;">· editing saved</span>' : ''}</div>`;
   html += `<div class="comp-box"><div class="big comp-big"></div><div class="band comp-band"></div></div>`;
   html += `</div>`;
-  if (!assessMeta.positionSet) html += `<p style="color:#e0a000;font-size:12px;margin-bottom:10px;">⚠ Position not set for this player — using the Outfield rubric. Ask admin to set it in the Players tab if they are a goalkeeper.</p>`;
+  if (!assessMeta.positionSet) html += `<p style="color:#e0a000;font-size:12px;margin-bottom:10px;">⚠ Position not set for this player — using the Outfield criteria. Ask admin to set it in the Players tab if they are a goalkeeper.</p>`;
 
   assessCategories.forEach(cat => {
     html += `<div class="assess-cat"><div class="ch"><span>${esc(cat.name)}</span><span class="cw">${Number(cat.weight) || 0}%</span></div>`;
@@ -1842,7 +1846,7 @@ async function generateReportCard() {
 
   const rubricName = assessMeta.rubricKey === 'gk' ? 'Goalkeeper' : 'Outfield';
   const profile = [['Team', assessMeta.group], ['Position', assessMeta.position || rubricName], ['Age', age === null ? '—' : String(age)],
-    ['Rubric', rubricName], ['Coach', coachName || '—'], ['Cycle', `${monthName} ${year}`]];
+    ['Criteria', rubricName], ['Coach', coachName || '—'], ['Cycle', `${monthName} ${year}`]];
   const boxH = 64, colW = CW / 3;
   doc.setFillColor(248, 246, 242); doc.setDrawColor(...LINE); doc.roundedRect(M, y, CW, boxH, 5, 5, 'FD');
   profile.forEach(([label, val], i) => {
