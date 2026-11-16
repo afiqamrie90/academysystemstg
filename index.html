@@ -17,7 +17,7 @@
   - Assessment entry — Phase 3: rate each skill 0-5 or N/A, live weighted composite + band, coach notes/focus/recommendations,
     "Copy last month", saved per player per month with a rubric snapshot (past assessments never change when the rubric is edited).
     Available to admin (Assessment tab) and to coaches on their own age group (Coach page)
-  - Coach page split into two tabs (Attendance / Assessment); Back button pinned top-right like admin Logout;
+  - Coach page split into two tabs (Attendance / Assessment); Logout button pinned top-right like admin Logout;
     coach tab choice now remembered across reloads; admin tab highlighting scoped to #adminView so the two tab bars don't clash
   - Report card PDF — Phase 4: one card per player in the Real Chukai layout (not a grid table) — crest + maroon header,
     player name, profile box (Team / Position / Age / Rubric / Coach / Cycle), lettered area bars (A-D) each showing the
@@ -447,7 +447,7 @@ a { color: var(--gold); }
   </div>
 
   <div id="coachView" class="hidden">
-    <button class="btn-secondary" onclick="backToLogin()" style="position:absolute;top:20px;right:20px;">Back</button>
+    <button class="btn-secondary" onclick="backToLogin()" style="position:absolute;top:20px;right:20px;">Logout</button>
     <div style="display:inline-block;background:var(--maroon);color:var(--white);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">🏃 Coach Page · <span id="coachGroupDisplay"></span><span id="coachNameDisplay" style="text-transform:none;letter-spacing:0;font-weight:400;"></span></div>
     <div class="tabs">
       <div class="tab active" onclick="showCoachTab('attendance')">Attendance</div>
