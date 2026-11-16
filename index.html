@@ -32,6 +32,12 @@
     Club record only — it does not gate or affect coach login, which still uses the coach access code
   - Admin Attendance is now a checking view: no Present/Absent buttons by default because coaches mark on the field.
     "Correct as admin" checkbox reveals the buttons when a record needs fixing
+  - Admin tab order: Players · Fees · Attendance · Assessment · Reports · Coaches
+  - Assessment tab is rubric-only now (viewer, Rubric Editor, Initialize/Reset). Player assessment entry + report card
+    download moved into the Reports tab
+  - Reports tab has two modes — "General Report" (the existing monthly attendance/fee report with its Parents/Management
+    toggle and Excel/PDF export) and "Player Report Card" (pick group / month / player, open the saved assessment,
+    download the card PDF)
   v1.13.1 (2026-11-09)
   - Coach access code: coaches must enter a code to view/mark attendance
   - Admin can set/change coach code in Players tab > Coach Access Code
@@ -186,10 +192,10 @@ a { color: var(--gold); }
     <div class="tabs">
       <div class="tab active" onclick="showAdminTab('players')">Players</div>
       <div class="tab hidden" onclick="showAdminTab('byAge')">By Age</div>
-      <div class="tab" onclick="showAdminTab('attendance')">Attendance</div>
       <div class="tab" onclick="showAdminTab('fees')">Fees</div>
-      <div class="tab" onclick="showAdminTab('reports')">Reports</div>
+      <div class="tab" onclick="showAdminTab('attendance')">Attendance</div>
       <div class="tab" onclick="showAdminTab('assessment')">Assessment</div>
+      <div class="tab" onclick="showAdminTab('reports')">Reports</div>
       <div class="tab" onclick="showAdminTab('coaches')">Coaches</div>
     </div>
 
@@ -310,64 +316,15 @@ a { color: var(--gold); }
     </div>
 
     <div id="adminReports" class="hidden">
-      <h3>Monthly Report</h3>
-      <select id="reportMonth">
-        <option value="01">January</option>
-        <option value="02">February</option>
-        <option value="03">March</option>
-        <option value="04">April</option>
-        <option value="05">May</option>
-        <option value="06">June</option>
-        <option value="07">July</option>
-        <option value="08">August</option>
-        <option value="09">September</option>
-        <option value="10">October</option>
-        <option value="11">November</option>
-        <option value="12">December</option>
-      </select>
-      <select id="reportYear"></select>
-      <select id="reportAgeGroup">
-        <option value="U8">U8</option>
-        <option value="U10">U10</option>
-        <option value="U12">U12</option>
-        <option value="U14">U14</option>
-        <option value="U16">U16</option>
-      </select>
-      <button class="btn-primary" onclick="generateReport()">Generate Report</button>
-      <div id="reportExportBar" class="hidden" style="margin-top:15px;">
-        <div class="audience-row">
-          <span>Report for:</span>
-          <button class="aud-btn active" id="audBtnParents" onclick="setReportAudience('parents')">Parents / Coach</button>
-          <button class="aud-btn" id="audBtnManagement" onclick="setReportAudience('management')">Management</button>
-        </div>
-        <button class="btn-success" onclick="exportReportExcel()">Export to Excel (.xlsx)</button>
-        <button class="btn-primary" onclick="exportReportPDF()">Export to PDF</button>
+      <h3>Reports</h3>
+      <div class="audience-row">
+        <button class="aud-btn active" id="repBtnGeneral" onclick="setReportMode('general')">General Report</button>
+        <button class="aud-btn" id="repBtnCard" onclick="setReportMode('card')">Player Report Card</button>
       </div>
-      <div id="reportOutput"></div>
-    </div>
 
-    <div id="adminAssessment" class="hidden">
-      <h3>Assessment Rubrics</h3>
-      <p style="color:#999;font-size:12px;margin-bottom:15px;">Position-based rubric used for monthly player reports. One rubric applies to all age groups (U8–U16).</p>
-      <div style="margin-bottom:15px;">
-        <button class="btn-success" onclick="seedRubrics()">Initialize / Reset Rubrics</button>
-        <span style="color:#999;font-size:12px;margin-left:10px;">Writes the default GK &amp; Outfield rubrics. Overwrites existing.</span>
-      </div>
-      <div id="rubricViewer"></div>
-
-      <hr style="margin:26px 0;border:none;border-top:1px solid #333;">
-      <h3>Player Assessments</h3>
-      <p style="color:#999;font-size:12px;margin-bottom:15px;">Monthly position-based assessment. Pick a player to rate each skill (0–5 or N/A); the composite and band compute automatically.</p>
-      <div class="assess-bar">
-        <select id="assessGroup" onchange="loadAssessPlayers()">
-          <option value="U8">U8</option>
-          <option value="U10">U10</option>
-          <option value="U12">U12</option>
-          <option value="U14">U14</option>
-          <option value="U16">U16</option>
-        </select>
-        <select id="assessYear"></select>
-        <select id="assessMonth">
+      <div id="reportGeneral">
+        <h4>Monthly Report</h4>
+        <select id="reportMonth">
           <option value="01">January</option>
           <option value="02">February</option>
           <option value="03">March</option>
@@ -381,9 +338,67 @@ a { color: var(--gold); }
           <option value="11">November</option>
           <option value="12">December</option>
         </select>
-        <select id="assessPlayer" onchange="openAssessForm()"></select>
+        <select id="reportYear"></select>
+        <select id="reportAgeGroup">
+          <option value="U8">U8</option>
+          <option value="U10">U10</option>
+          <option value="U12">U12</option>
+          <option value="U14">U14</option>
+          <option value="U16">U16</option>
+        </select>
+        <button class="btn-primary" onclick="generateReport()">Generate Report</button>
+        <div id="reportExportBar" class="hidden" style="margin-top:15px;">
+          <div class="audience-row">
+            <span>Report for:</span>
+            <button class="aud-btn active" id="audBtnParents" onclick="setReportAudience('parents')">Parents / Coach</button>
+            <button class="aud-btn" id="audBtnManagement" onclick="setReportAudience('management')">Management</button>
+          </div>
+          <button class="btn-success" onclick="exportReportExcel()">Export to Excel (.xlsx)</button>
+          <button class="btn-primary" onclick="exportReportPDF()">Export to PDF</button>
+        </div>
+        <div id="reportOutput"></div>
       </div>
-      <div id="assessEntry"></div>
+
+      <div id="reportCard" class="hidden">
+        <h4>Player Report Card</h4>
+        <p style="color:#999;font-size:12px;margin-bottom:15px;">Pick a player to open the assessment saved for that month, then download the report card. Coaches enter the ratings; admin can review and correct them here.</p>
+        <div class="assess-bar">
+          <select id="assessGroup" onchange="loadAssessPlayers()">
+            <option value="U8">U8</option>
+            <option value="U10">U10</option>
+            <option value="U12">U12</option>
+            <option value="U14">U14</option>
+            <option value="U16">U16</option>
+          </select>
+          <select id="assessYear"></select>
+          <select id="assessMonth">
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+          <select id="assessPlayer" onchange="openAssessForm()"></select>
+        </div>
+        <div id="assessEntry"></div>
+      </div>
+    </div>
+
+    <div id="adminAssessment" class="hidden">
+      <h3>Assessment Rubrics</h3>
+      <p style="color:#999;font-size:12px;margin-bottom:15px;">Position-based rubric used for monthly player reports. One rubric applies to all age groups (U8–U16).</p>
+      <div style="margin-bottom:15px;">
+        <button class="btn-success" onclick="seedRubrics()">Initialize / Reset Rubrics</button>
+        <span style="color:#999;font-size:12px;margin-left:10px;">Writes the default GK &amp; Outfield rubrics. Overwrites existing.</span>
+      </div>
+      <div id="rubricViewer"></div>
     </div>
 
     <div id="adminCoaches" class="hidden">
@@ -663,16 +678,25 @@ function showAdminTab(tab) {
     loadAdminAttendance();
   } else if (tab === 'reports') {
     document.getElementById('adminReports').classList.remove('hidden');
+    if (reportMode === 'card') openAssessPanel('admin');
   } else if (tab === 'fees') {
     document.getElementById('adminFees').classList.remove('hidden');
   } else if (tab === 'assessment') {
     document.getElementById('adminAssessment').classList.remove('hidden');
     loadRubricViewer();
-    openAssessPanel('admin');
   } else if (tab === 'coaches') {
     document.getElementById('adminCoaches').classList.remove('hidden');
     loadCoachRegister();
   }
+}
+
+function setReportMode(mode) {
+  reportMode = mode;
+  document.getElementById('repBtnGeneral').classList.toggle('active', mode === 'general');
+  document.getElementById('repBtnCard').classList.toggle('active', mode === 'card');
+  document.getElementById('reportGeneral').classList.toggle('hidden', mode !== 'general');
+  document.getElementById('reportCard').classList.toggle('hidden', mode !== 'card');
+  if (mode === 'card') openAssessPanel('admin');
 }
 
 function showCoachTab(tab) {
@@ -695,6 +719,7 @@ function showCoachTab(tab) {
 
 let feePending = {};
 let playerViewMode = 'list';
+let reportMode = 'general';
 
 async function loadAdminPlayers() {
   const group = document.getElementById('adminAgeGroup').value;
