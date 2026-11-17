@@ -90,21 +90,21 @@ td.num, th.num { text-align: right; }
     <div>
       <h1>Shah Alam City Academy</h1>
       <h2>Parent Report Portal</h2>
-      <div class="tagline">Player Assessment Report · semak keputusan anak anda</div>
+      <div class="tagline">Player Assessment Report · check your child's results</div>
     </div>
   </div>
 
   <!-- SEARCH -->
   <div id="searchView">
     <div class="card">
-      <h3>Cari laporan anak anda</h3>
-      <label for="icInput">No. Kad Pengenalan (IC) anak</label>
-      <input type="text" id="icInput" placeholder="cth: 180612-10-5634" autocomplete="off" inputmode="numeric">
+      <h3>Search your child's report</h3>
+      <label for="icInput">Child's IC / MyKad number</label>
+      <input type="text" id="icInput" placeholder="e.g. 180612-10-5634" autocomplete="off" inputmode="numeric">
       <div class="row" style="margin-top:12px;">
-        <button class="btn-primary" id="searchBtn" onclick="searchChild()">Cari / Search</button>
+        <button class="btn-primary" id="searchBtn" onclick="searchChild()">Search</button>
       </div>
-      <div class="hint">Masukkan IC anak seperti yang didaftarkan. Tanda sempang (-) tak perlu sama — sistem bandingkan nombir sahaja.</div>
-      <div class="privacy">🔒 Portal ini menunjukkan laporan <b>anak anda seorang sahaja</b>. Anda tidak boleh melihat keputusan kanak-kanak lain.</div>
+      <div class="hint">Enter your child's IC exactly as registered. The dash (-) does not need to match — only the digits are compared.</div>
+      <div class="privacy">🔒 This portal shows <b>only your own child's</b> report. You cannot see any other child's results.</div>
       <div id="searchMsg" class="msg"></div>
       <div id="matchList" class="match-list"></div>
     </div>
@@ -114,7 +114,7 @@ td.num, th.num { text-align: right; }
   <div id="resultView">
     <div class="card">
       <div id="closeRow" style="text-align:right;margin-bottom:6px;">
-        <button class="btn-secondary" style="padding:6px 14px;font-size:13px;" onclick="resetSearch()">Cari lain / Change child</button>
+        <button class="btn-secondary" style="padding:6px 14px;font-size:13px;" onclick="resetSearch()">Search another child</button>
       </div>
       <div class="row" style="align-items:baseline;">
         <span class="child-name" id="rvName">—</span>
@@ -124,12 +124,12 @@ td.num, th.num { text-align: right; }
 
       <div class="row" style="margin-top:16px;align-items:flex-end;">
         <div style="flex:1;min-width:180px;">
-          <label for="monthSel">Pilih bulan / Choose month</label>
+          <label for="monthSel">Choose month</label>
           <select id="monthSel" onchange="selectMonth()"></select>
         </div>
       </div>
 
-      <div id="noRecord" class="msg info" style="display:none;">Tiada laporan tersedia untuk anak ini lagi. Sila cuba bulan lain atau semak semula nanti.</div>
+      <div id="noRecord" class="msg info" style="display:none;">No report is available for this child yet. Please try another month or check back later.</div>
 
       <div id="reportBody" style="margin-top:16px;">
         <div class="score-wrap">
@@ -451,11 +451,11 @@ async function searchChild() {
   const ic = document.getElementById('icInput').value.trim();
   const d = digitsOnly(ic);
   document.getElementById('matchList').innerHTML = '';
-  if (d.length < 6) { setMsg('searchMsg', 'error', 'Sila masukkan No. IC anak yang lengkap (sekurang-kurangnya 6 nombor).'); return; }
+  if (d.length < 6) { setMsg('searchMsg', 'error', "Please enter your child's full IC number (at least 6 digits)."); return; }
 
   const btn = document.getElementById('searchBtn');
   btn.disabled = true;
-  setMsg('searchMsg', 'info', 'Mencari…');
+  setMsg('searchMsg', 'info', 'Searching…');
   try {
     // Load active players per group, match by digit-only IC. Only the matched child is ever shown.
     const matches = [];
@@ -467,11 +467,11 @@ async function searchChild() {
       });
     }
     if (!matches.length) {
-      setMsg('searchMsg', 'error', 'Tiada pemain didaftarkan dengan IC ini. Periksa semula nombor IC atau hubungi akademi.');
+      setMsg('searchMsg', 'error', 'No player is registered with this IC. Please re-check the IC number or contact the academy.');
       return;
     }
     if (matches.length === 1) { openChild(matches[0]); return; }
-    setMsg('searchMsg', 'info', 'Beberapa rekod ditemui untuk IC ini. Pilih anak anda:');
+    setMsg('searchMsg', 'info', 'Multiple records found for this IC. Please select your child:');
     const list = document.getElementById('matchList');
     matches.forEach(m => {
       const b = document.createElement('button');
@@ -480,7 +480,7 @@ async function searchChild() {
       list.appendChild(b);
     });
   } catch (e) {
-    setMsg('searchMsg', 'error', 'Ralat mencari: ' + e.message);
+    setMsg('searchMsg', 'error', 'Search error: ' + e.message);
   } finally {
     btn.disabled = false;
   }
@@ -498,7 +498,7 @@ async function openChild(child) {
     `<span class="pill">${child.group}</span>` +
     `<span class="pill">${pos === 'GK' ? 'GK' : 'Outfield'}</span>` +
     (age !== null ? `<span class="pill">Age ${age}</span>` : '');
-  document.getElementById('rvMeta').textContent = `No. IC: ${child.ic || '—'}`;
+  document.getElementById('rvMeta').textContent = `IC No.: ${child.ic || '—'}`;
 
   // Load this child's saved assessment records
   const sel = document.getElementById('monthSel');
@@ -513,7 +513,7 @@ async function openChild(child) {
     snap.forEach(d => { const r = d.data(); if (r.monthKey) { currentRecords[r.monthKey] = r; keys.push(r.monthKey); } });
     keys.sort().reverse();
     if (!keys.length) {
-      sel.innerHTML = '<option>Tiada laporan</option>';
+      sel.innerHTML = '<option>No reports</option>';
       sel.disabled = true;
       document.getElementById('noRecord').style.display = 'block';
       return;
@@ -526,8 +526,8 @@ async function openChild(child) {
     currentMonthKey = keys[0];
     await selectMonth();
   } catch (e) {
-    sel.innerHTML = '<option>Ralat memuatkan</option>';
-    setMsg('searchMsg', 'error', 'Ralat memuatkan laporan: ' + e.message);
+    sel.innerHTML = '<option>Failed to load</option>';
+    setMsg('searchMsg', 'error', 'Failed to load reports: ' + e.message);
   }
 }
 
@@ -565,10 +565,10 @@ async function selectMonth() {
       <td class="num" style="color:var(--gold)">${c.weight}%</td>
       <td class="num">${meanTxt}</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="3" style="color:var(--gray)">Tiada kriteria dalam laporan ini.</td></tr>';
+  }).join('') : '<tr><td colspan="3" style="color:var(--gray)">No criteria in this report.</td></tr>';
 
   // Attendance
-  document.getElementById('rvAtt').innerHTML = '<span style="color:var(--gray)">Mengira kehadiran…</span>';
+  document.getElementById('rvAtt').innerHTML = '<span style="color:var(--gray)">Calculating attendance…</span>';
   try {
     const att = await monthAttendanceStats(currentChild.group, key, currentChild.id);
     if (att.total) {
@@ -582,7 +582,7 @@ async function selectMonth() {
       document.getElementById('rvAtt').innerHTML = html;
     } else {
       const [y, m] = key.split('-');
-      document.getElementById('rvAtt').innerHTML = `<span style="color:var(--gray)">Tiada sesi direkodkan untuk ${MONTH_NAMES[parseInt(m)] || m} ${y}.</span>`;
+      document.getElementById('rvAtt').innerHTML = `<span style="color:var(--gray)">No sessions recorded for ${MONTH_NAMES[parseInt(m)] || m} ${y}.</span>`;
     }
   } catch (e) {
     document.getElementById('rvAtt').innerHTML = '';
@@ -591,7 +591,7 @@ async function selectMonth() {
   // Coach feedback
   const fb = [['Strengths & observations', rec.notes], ['Focus area for next cycle', rec.focusArea], ['Recommendations', rec.recommendations]];
   const fbHtml = fb.filter(([, v]) => v).map(([k, v]) => `<div class="fb-block"><div class="k">${k}</div><div class="v">${escapeHtml(v)}</div></div>`).join('');
-  document.getElementById('rvFeedback').innerHTML = fbHtml || '<div style="color:var(--gray);font-size:0.85rem;">Tiada komen jurulatih untuk bulan ini.</div>';
+  document.getElementById('rvFeedback').innerHTML = fbHtml || '<div style="color:var(--gray);font-size:0.85rem;">No coach feedback for this month.</div>';
 
   document.getElementById('dlStatus').textContent = '';
 }
@@ -606,7 +606,7 @@ async function downloadPdf() {
   if (!rec) return;
   const btn = document.getElementById('downloadBtn');
   btn.disabled = true;
-  document.getElementById('dlStatus').textContent = 'Menjana PDF…';
+  document.getElementById('dlStatus').textContent = 'Generating PDF…';
   try {
     const position = currentChild.position || 'Outfield';
     const card = {
@@ -620,10 +620,10 @@ async function downloadPdf() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     doc.save(await drawReportCard(doc, card));
-    document.getElementById('dlStatus').textContent = 'Selesai — periksa folder Downloads anda.';
+    document.getElementById('dlStatus').textContent = 'Done — check your Downloads folder.';
   } catch (e) {
     document.getElementById('dlStatus').textContent = '';
-    alert('Gagal menjana PDF: ' + e.message);
+    alert('Failed to generate PDF: ' + e.message);
   } finally {
     btn.disabled = false;
   }
