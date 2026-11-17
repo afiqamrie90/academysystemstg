@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
+  v1.15.0 (2026-11-17)
+  - Parent Report Portal — a standalone parent-facing page (parent.html): enter the child's IC, see ONLY that child's
+    saved assessments, pick a month, and download the same report card PDF the admin/coach produces. No login, no shared
+    list; assessments are fetched for the one matched playerId only, so a parent can never reach another child's results.
+    Reuses the app's drawReportCard + composite/band/breakdown/attendance/age helpers verbatim and the identical env block
+    (non-prod host -> saca_stg). IC matched by digits, so dashes don't matter. STG only — v1.14/v1.15 not deployed to prod.
+  - Versioning scheme: one shared release number for the whole academy system (index.html + parent.html move together,
+    bumped per feature from here on).
   v1.14.0 (2026-11-15)
   - Position field (GK / Outfield) added to player profile — Phase 1 of assessment subsystem
   - Add-player form + Edit modal capture Position
@@ -76,7 +84,7 @@
   - "View Details (Table)" toggle — Excel-style table view
   - "By Age" view — players grouped by actual age from IC (tab currently hidden)
 -->
-<title>Player Management - Shah Alam City Academy v1.14.0</title>
+<title>Player Management - Shah Alam City Academy v1.15.0</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -194,7 +202,7 @@ a { color: var(--gold); }
       <h2>Player Management System</h2>
     </div>
   </div>
-  <p style="color:#999;font-size:12px;margin-bottom:20px;">Version 1.14.0 <span id="envBadge"></span></p>
+  <p style="color:#999;font-size:12px;margin-bottom:20px;">Version 1.15.0 <span id="envBadge"></span></p>
 
   <div id="loginView">
     <h3>Admin Login</h3>
