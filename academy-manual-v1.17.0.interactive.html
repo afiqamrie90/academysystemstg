@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Manual INTERAKTIF v1.14.0 — dijana oleh tmp/build-interactive-manual.js daripada academy-manual-v1.14.0.html.
-     Edit isi dalam academy-manual-v1.14.0.html, kemudian jana semula. -->
-<title>Manual Penggunaan — Shah Alam City Academy v1.14.0 — versi interaktif</title>
+<!-- Manual INTERAKTIF v1.17.0 — dijana oleh tmp/build-interactive-manual.js daripada academy-manual-v1.17.0.html.
+     Edit isi dalam academy-manual-v1.17.0.html, kemudian jana semula. -->
+<title>Manual Penggunaan — Shah Alam City Academy v1.17.0 — versi interaktif</title>
 <style>
   :root { --maroon: #800000; --gold: #c8860a; --ink: #222; --muted: #6b6b6b; --line: #ded6d0; --soft: #faf7f3; }
   * { box-sizing: border-box; }
@@ -48,6 +48,12 @@
   figure.shot img { width: 100%; max-height: 520pt; height: auto; display: block; margin: 0 auto; border: 1px solid var(--line); border-radius: 8px; }
   .srccap { color: var(--muted); font-size: 11.5px; margin: 4px 0 10px; }
 
+
+/*SHOT:CSS*/
+  figure.shot { margin: 12px 0 16px; break-inside: avoid; }
+  figure.shot img { width: 100%; max-height: 500pt; height: auto; display: block; margin: 0 auto; border: 1px solid var(--line); border-radius: 8px; }
+/*/SHOT:CSS*/
+
 /*PNAV:CSS*/
   .pnav-box { background: var(--soft); border: 1px solid var(--line); border-left: 4px solid var(--maroon); border-radius: 6px; padding: 10px 14px 12px; margin: 14px 0 4px; }
   .pnav-title { color: var(--maroon); font-weight: 700; font-size: 14px; margin-bottom: 6px; }
@@ -60,10 +66,6 @@
   .pback { text-align: right; margin: 10px 0 0; }
   .pback a { color: #143c6b; font-size: 11px; text-decoration: none; }
 /*/PNAV:CSS*/
-/*SHOT:CSS*/
-  figure.shot { margin: 12px 0 16px; break-inside: avoid; }
-  figure.shot img { width: 100%; max-height: 500pt; height: auto; display: block; margin: 0 auto; border: 1px solid var(--line); border-radius: 8px; }
-/*/SHOT:CSS*/
 @media print {
     body { font-size: 11.2px; }
     .page { max-width: none; padding: 0; }
@@ -117,7 +119,7 @@
 
   <div class="topbar">
     <button class="nav-btn" data-home>⌂ Home</button>
-    <div class="tb-title">Manual v1.14.0 · versi ujian (STG)</div>
+    <div class="tb-title">Manual v1.17.0 · versi ujian (STG)</div>
     <button class="nav-btn" data-prev>‹</button>
     <span class="nav-mid" id="counter">—</span>
     <button class="nav-btn primary" data-next>›</button>
@@ -128,12 +130,12 @@
       <header>
   <div class="kicker">Shah Alam City Football Club · Akademi</div>
   <h1>Manual Penggunaan — Sistem Pengurusan Pemain</h1>
-  <div class="meta"><span class="ver">v1.14.0</span> <span class="beta">VERSI UJIAN (STG)</span> &nbsp; Untuk pentadbir kelab · Dikemas kini 16 November 2026</div>
+  <div class="meta"><span class="ver">v1.17.0</span> <span class="beta">VERSI UJIAN (STG)</span> &nbsp; Untuk pentadbir kelab · Dikemas kini 17 November 2026</div>
 </header>
       <div class="box warn"><b>Baca dulu.</b> Versi ini <b>belum</b> dipasang di laman LIVE. Ia berjalan di pelayan ujian sahaja, dengan data ujian yang berasingan — apa yang anda taip di sini <b>tidak</b> mengubah data sebenar kelab. Versi LIVE ketika ini ialah <b>v1.13.1</b> (manual berasingan).</div>
       <h2>Kandungan</h2>
       <div class="home-grid">
-    <button class="toc-item" data-goto="1"><span class="toc-n">1</span><span>1. Apa baru dalam v1.14.0</span></button>
+    <button class="toc-item" data-goto="1"><span class="toc-n">1</span><span>1. Apa baru dalam v1.17.0</span></button>
     <button class="toc-item" data-goto="2"><span class="toc-n">2</span><span>2. Alamat &amp; cara kenal versi</span></button>
     <button class="toc-item" data-goto="3"><span class="toc-n">3</span><span>3. Login</span></button>
     <button class="toc-item" data-goto="4"><span class="toc-n">4</span><span>4. Tab Players</span></button>
@@ -144,21 +146,25 @@
     <button class="toc-item" data-goto="9"><span class="toc-n">9</span><span>9. Apa yang ada dalam Report Card</span></button>
     <button class="toc-item" data-goto="10"><span class="toc-n">10</span><span>10. Tab Coaches <span class="new">BARU</span></span></button>
     <button class="toc-item" data-goto="11"><span class="toc-n">11</span><span>11. Halaman Coach — dua tab <span class="chg">BERUBAH</span></span></button>
-    <button class="toc-item" data-goto="12"><span class="toc-n">12</span><span>12. Kerja rutin bulanan (cadangan urutan)</span></button>
-    <button class="toc-item" data-goto="13"><span class="toc-n">13</span><span>13. Soalan biasa (v1.14.0)</span></button>
-    <button class="toc-item" data-goto="14"><span class="toc-n">14</span><span>14. Belum ada dalam versi ini</span></button>
+    <button class="toc-item" data-goto="12"><span class="toc-n">12</span><span>12. Portal Ibu Bapa <span class="new">BARU (v1.15)</span></span></button>
+    <button class="toc-item" data-goto="13"><span class="toc-n">13</span><span>13. Kerja rutin bulanan (cadangan urutan)</span></button>
+    <button class="toc-item" data-goto="14"><span class="toc-n">14</span><span>14. Soalan biasa (v1.17.0)</span></button>
+    <button class="toc-item" data-goto="15"><span class="toc-n">15</span><span>15. Belum ada dalam versi ini</span></button>
       </div>
       <p class="home-note">Guna butang ‹ › di atas, kekunci <span class="kbd">←</span> <span class="kbd">→</span>, atau leret (swipe) pada iPad untuk pindah muka. <span class="kbd">Home</span> kembali ke sini.</p>
       <p class="home-note">Nak versi cetak/PDF? Tekan <span class="kbd">Ctrl</span>+<span class="kbd">P</span> — semua muka akan tercetak berturutan.</p>
-      <div class="foot"><span>© 2026 Shah Alam City Football Club</span><span>Manual v1.14.0 · versi ujian · One City. One Pack.</span></div>
+      <div class="foot"><span>© 2026 Shah Alam City Football Club</span><span>Manual v1.17.0 · versi ujian · One City. One Pack.</span></div>
     </div>
   </section>
 
   <section class="pg" data-num="1" hidden>
     <div class="sheet">
-      <h2 id="s1">1. Apa baru dalam v1.14.0</h2>
+      <h2 id="s1">1. Apa baru dalam v1.17.0</h2>
 <table>
   <tr><th style="width:30%">Bahagian</th><th>Perubahan</th></tr>
+  <tr><td>Portal Ibu Bapa <span class="new">BARU</span></td><td>Halaman berasingan (<span class="ui">parent.html</span>) untuk ibu bapa: carik anak guna No. MyKid/MyKad, pilih bulan, muat turun report card PDF sendiri. Ibu bapa hanya nampak anak mereka — tak boleh nampak pemain lain. <b>(v1.15)</b></td></tr>
+  <tr><td>Copy Payment List (WhatsApp) <span class="new">BARU</span></td><td>Butang di tab Fees yang salin senarai bayaran SEMUA kumpulan untuk bulan terpilih, disusun ikut umur (TAHUN), yang dah bayar ada ✅ — terus paste kat group WhatsApp. <b>(v1.17)</b></td></tr>
+  <tr><td>Muat turun semua report card jadi <b>.zip</b> <span class="chg">BERUBAH</span></td><td><span class="ui">Download All Report Cards</span> sekarang hasilkan SATU fail .zip (satu PDF setiap pemain) — bukan muat turun satu-satu lagi. <b>(v1.16)</b></td></tr>
   <tr><td>Penilaian pemain <span class="new">BARU</span></td><td>Setiap pemain boleh dinilai setiap bulan mengikut kriteria (skill 0–5 atau N/A), skor komposit + band automatik.</td></tr>
   <tr><td>Report card <span class="new">BARU</span></td><td>Satu PDF satu halaman untuk ibu bapa/pengurusan: profil, markah setiap skill, skor komposit, kehadiran (termasuk tarikh absent), nota jurulatih, tandatangan.</td></tr>
   <tr><td>Assessment Criteria <span class="new">BARU</span></td><td>Tab khas untuk melihat dan menyunting kriteria penilaian (kategori, berat %, skill) tanpa perlu sentuh kod.</td></tr>
@@ -172,7 +178,7 @@
 </table>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 1 / 14</span>
+        <span class="nav-mid">Muka 1 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -184,11 +190,12 @@
 <table>
   <tr><th style="width:26%">Ujian (STG)</th><td><span class="path">https://afiqamrie90.github.io/academysystemstg</span> — badge <b>STG</b> kuning di bawah nama versi</td></tr>
   <tr><th>LIVE (prod)</th><td><span class="path">https://apms.shahalamcityfc.com</span> — badge <b>PROD</b>, masih v1.13.1</td></tr>
+  <tr><th>Portal Ibu Bapa</th><td><span class="path">https://afiqamrie90.github.io/academysystemstg/parent.html</span> — halaman ringkas untuk ibu bapa (tanpa login admin). Lihat bahagian 12.</td></tr>
 </table>
 <div class="box tip">Kalau halaman lambat berubah selepas kemas kini, tekan <b>Ctrl+F5</b> (hard reload). Browser kadang-kadang pakai fail lama yang di-cache.</div>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 2 / 14</span>
+        <span class="nav-mid">Muka 2 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -210,7 +217,7 @@
 <div class="box warn"><b>Untuk ujian sahaja:</b> pada pelayan STG, password admin dikosongkan dan coach code ujian ialah <span class="path">1</span>. Jangan pakai code ini sebagai contoh untuk LIVE — di LIVE password dan code sebenar masih dipakai.</div>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 3 / 14</span>
+        <span class="nav-mid">Muka 3 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -234,7 +241,7 @@
 <div class="box"><b>Kenapa penting.</b> Position menentukan set kriteria yang dipakai semasa penilaian: GK → <i>Goalkeeper criteria</i>, Outfield → <i>Outfield criteria</i>. Kalau Position belum diisi, sistem pakai Outfield dan memaparkan amaran ⚠ — jadi isikan Position untuk semua penjaga gol sebelum menilai.</div>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 4 / 14</span>
+        <span class="nav-mid">Muka 4 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -248,18 +255,19 @@
 <!--SHOT:END-->
 
 
-<p>Tiada perubahan daripada v1.13.1. Tab ini untuk menandakan <b>siapa sudah bayar untuk bulan tertentu</b> dan mengeluarkan resit. (Kategori yuran seorang pemain — RM120 / RM80 / Scholarship — ditetapkan di tab <span class="ui">Players</span>, bukan di sini.)</p>
+<p>Tab ini untuk menandakan <b>siapa sudah bayar untuk bulan tertentu</b>, mengeluarkan resit, dan menyalin senarai bayaran untuk group WhatsApp. (Kategori yuran seorang pemain — RM120 / RM80 / Scholarship — ditetapkan di tab <span class="ui">Players</span>, bukan di sini.)</p>
 <ol class="steps">
   <li>Pilih <span class="ui">Age Group</span>, <span class="ui">Month</span> dan <span class="ui">Year</span> → tekan <span class="ui">Load</span>.</li>
   <li>Senarai pemain keluar bersama kategori yuran masing-masing dalam kurungan.</li>
   <li>Tandakan <b>Paid</b> atau <b>Unpaid</b> untuk setiap pemain.</li>
   <li>Tekan <span class="ui">Save Payment Status</span> — tanpa butang ini tanda anda tidak disimpan.</li>
   <li>Butang <span class="ui">Receipt</span> hanya muncul pada pemain yang berstatus <b>Paid</b>. Tekan untuk muat turun resit PDF (nama, kumpulan, bulan, jumlah, tarikh issued) — sesuai dihantar kepada ibu bapa.</li>
+  <li><span class="new">BARU (v1.17)</span> — Tekan <span class="ui">📋 Copy Payment List (WhatsApp)</span> di sebelah butang <span class="ui">Load</span> untuk salin senarai bayaran <b>SEMUA kumpulan</b> bagi bulan yang dipilih. Daftar tu disusun ikut umur pemain (TAHUN); yang dah bayar (atau Scholarship) ada <b>✅</b>, yang belum bayar tulis nama sahaja tanpa icon. Selepas tekan, mesej keluar seperti <i>✅ Disalin — N pemain, M dah bayar</i> — terus <b>paste</b> di group WhatsApp ibu bapa.</li>
 </ol>
 <div class="box tip"><b>Scholarship.</b> Pemain berkategori <i>Scholarship</i> dianggap <b>Paid</b> secara automatik dan tidak boleh ditukar; resit mereka terbit dengan jumlah <b>RM0</b>.</div>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 5 / 14</span>
+        <span class="nav-mid">Muka 5 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -281,7 +289,7 @@
 </ol>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 6 / 14</span>
+        <span class="nav-mid">Muka 6 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -308,7 +316,7 @@
 <div class="box warn"><span class="ui">Initialize / Reset Criteria</span> menulis semula kedua-dua set kepada nilai asal kilang dan <b>MENIMBUN</b> suntingan anda. Ada pengesahan sebelum ia jalan. Guna hanya bila kriteria sudah bercelaru.</div>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 7 / 14</span>
+        <span class="nav-mid">Muka 7 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -339,11 +347,12 @@
   <li>Isi tiga nota: <span class="ui">Strengths &amp; observations</span>, <span class="ui">Focus area for next cycle</span>, <span class="ui">Recommendations</span>.</li>
   <li>Tekan <span class="ui">Save Assessment</span>. Satu rekod setiap pemain setiap bulan (menyimpan kali kedua akan mengemas kini rekod bulan itu).</li>
   <li>Tekan <span class="ui">Download Report Card (PDF)</span> untuk muat turun kad.</li>
+  <li><span class="chg">BERUBAH (v1.16)</span> — Tekan <span class="ui">Download All Report Cards (this group, .zip)</span> untuk muat turun <b>sekali klik semua</b> report card dalam kumpulan itu bagi bulan terpilih. Hasilnya <b>SATU fail .zip</b> yang mengandungi satu PDF setiap pemain yang sudah dinilai — bukan lagi muat turun satu persatu. Buka .zip untuk dapatkan semua kad.</li>
 </ol>
 <div class="box tip"><span class="ui">Copy last month</span> mengisi borang dengan markah bulan sebelumnya — anda tinggal ubah yang perlu. Berguna bila penilaian 15–20 pemain setiap bulan.</div>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 8 / 14</span>
+        <span class="nav-mid">Muka 8 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -383,7 +392,7 @@
 <!-- SAMPLE-CARDS:END -->
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 9 / 14</span>
+        <span class="nav-mid">Muka 9 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -411,7 +420,7 @@
 </ol>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 10 / 14</span>
+        <span class="nav-mid">Muka 10 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -436,7 +445,7 @@
 <div class="box tip">Pilihan tab coach diingati — reload halaman coach akan kembali ke tab terakhir yang dibuka.</div>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 11 / 14</span>
+        <span class="nav-mid">Muka 11 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -444,7 +453,30 @@
 
   <section class="pg" data-num="12" hidden>
     <div class="sheet">
-      <h2 id="s12">12. Kerja rutin bulanan (cadangan urutan)</h2>
+      <h2 id="s12">12. Portal Ibu Bapa <span class="new">BARU (v1.15)</span></h2>
+<p>Halaman berasingan untuk <b>ibu bapa</b> melihat &amp; memuat turun report card anak mereka sendiri — tanpa perlu log masuk admin dan tanpa melihat pemain lain. Anda hantar sahaja pautan ini kepada ibu bapa:</p>
+<p class="path" style="display:block;">https://afiqamrie90.github.io/academysystemstg/parent.html</p>
+<h3>12.1 Cara ibu bapa guna</h3>
+<ol class="steps">
+  <li>Buka pautan di atas (telefon atau komputer).</li>
+  <li>Masukkan <span class="ui">MyKid / MyKad Number</span> anak — <b>sama seperti yang admin daftarkan</b> di tab Players (tanda <span class="ui">-</span> boleh ada atau tiada; sistem padankan nombir sahaja).</li>
+  <li>Tekan <span class="ui">Search</span>. Kad anak keluar (nama, kumpulan, umur).</li>
+  <li>Pilih bulan pada <span class="ui">Choose month</span>, kemudian <span class="ui">Download Report Card (PDF)</span> untuk dapatkan kad.</li>
+  <li><span class="ui">Search another child</span> untuk tukar ke anak lain.</li>
+</ol>
+<div class="box tip"><b>Privasi.</b> Halaman ini hanya memuat rekod pemain yang No. IC-nya sepadan dengan yang ditaip. Ibu bapa tidak boleh melihat markah atau laporan kanak-kanak lain.</div>
+<div class="box warn"><b>Keperluan.</b> Report card ibu bapa hanya muncul untuk bulan yang <b>admin sudah isi penilaiannya</b>. Kalau bulan itu belum dinilai, halaman akan tunjuk tiada laporan. Kalau keluar <i>"No player is registered with this IC"</i>, bermakna No. IC yang ditaip tak sepadan — semak ejaan/nombor dengan rekod admin. (Peringatan: No. IC sahaja bukan keselamatan sebenar — ia mudah digunakan, bukan kunci kukuh.)</div>
+      <nav class="pnav">
+        <button class="nav-btn" data-prev>‹ Sebelum</button>
+        <span class="nav-mid">Muka 12 / 15</span>
+        <button class="nav-btn primary" data-next>Seterusnya ›</button>
+      </nav>
+    </div>
+  </section>
+
+  <section class="pg" data-num="13" hidden>
+    <div class="sheet">
+      <h2 id="s13">13. Kerja rutin bulanan (cadangan urutan)</h2>
 <table>
   <tr><th style="width:20%">Bila</th><th>Apa</th></tr>
   <tr><td>Setiap sesi</td><td>Coach tanda kehadiran + <span class="ui">Save</span>. Admin semak tab <span class="ui">Attendance</span>; guna <span class="ui">Correct as admin</span> kalau perlu betulkan.</td></tr>
@@ -456,15 +488,15 @@
 </table>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 12 / 14</span>
+        <span class="nav-mid">Muka 13 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
   </section>
 
-  <section class="pg" data-num="13" hidden>
+  <section class="pg" data-num="14" hidden>
     <div class="sheet">
-      <h2 id="s13">13. Soalan biasa (v1.14.0)</h2>
+      <h2 id="s13">14. Soalan biasa (v1.17.0)</h2>
 <table>
   <tr><th style="width:38%">Masalah</th><th>Sebab &amp; penyelesaian</th></tr>
   <tr><td>⚠ "Position not set for this player"</td><td>Pemain belum dipilih GK/Outfield. Sistem pakai Outfield. Betulkan di tab <span class="ui">Players</span> → <span class="ui">Edit</span>.</td></tr>
@@ -476,27 +508,28 @@
   <tr><td>Report card tak ada butang muat turun</td><td>Butang itu hanya untuk admin (tab Reports → Player Report Card). Halaman coach memang tiada.</td></tr>
   <tr><td>Penilaian bulan lepas bertukar selepas sunting kriteria</td><td>Sepatutnya tidak — rekod lama pakai snapshot. Kalau berlaku, beritahu pembangun (itu kerosakan).</td></tr>
   <tr><td>Perubahan tak nampak di skrin</td><td>Cache browser — tekan Ctrl+F5, dan pastikan badge STG/PROD mengikut pelayan yang anda maksudkan.</td></tr>
+  <tr><td>Ibu bapa kata report card tak keluar / kosong</td><td>Biasanya sebab: (a) No. IC yang ditaip tak sama dengan rekod admin, atau (b) penilaian bulan itu belum diisi oleh admin. Semak nombor IC &amp; pastikan assessment bulan tersebut sudah <span class="ui">Save Assessment</span>.</td></tr>
 </table>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 13 / 14</span>
+        <span class="nav-mid">Muka 14 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
   </section>
 
-  <section class="pg" data-num="14" hidden>
+  <section class="pg" data-num="15" hidden>
     <div class="sheet">
-      <h2 id="s14">14. Belum ada dalam versi ini</h2>
+      <h2 id="s14">15. Belum ada dalam versi ini</h2>
 <ul>
   <li>Senarai <b>sejarah</b> penilaian setiap pemain (muat semula kad bulan lama) — fasa seterusnya.</li>
-  <li>Login individu untuk setiap jurulatih/admin (peraturan akses Firebase), dan akses ibu bapa.</li>
+  <li>Login individu (emel/kata laluan) untuk setiap jurulatih/admin dan ibu bapa — sekarang admin guna satu kata laluan, coach guna kod, portal ibu bapa guna No. IC sebagai padanan. Peraturan akses Firebase belum dikuatkuasakan.</li>
   <li>Tinggi / berat badan, jenis sesi (Latihan / Friendly), trend markah merentas bulan.</li>
   <li>Kedudukan terperinci DEF / MID / FWD dan kriteria khusus ikut umur.</li>
 </ul>
       <nav class="pnav">
         <button class="nav-btn" data-prev>‹ Sebelum</button>
-        <span class="nav-mid">Muka 14 / 14</span>
+        <span class="nav-mid">Muka 15 / 15</span>
         <button class="nav-btn primary" data-next>Seterusnya ›</button>
       </nav>
     </div>
@@ -506,7 +539,7 @@
 
 <script>
 (function () {
-  var TOTAL = 14;
+  var TOTAL = 15;
   var home = document.getElementById('home');
   var pages = Array.prototype.slice.call(document.querySelectorAll('.pg'));
   var counter = document.getElementById('counter');
