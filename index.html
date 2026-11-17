@@ -61,6 +61,9 @@
     one file — a parent must never receive a PDF containing another child's results. Players with no assessment yet are
     skipped and stay downloadable one by one after the coach fills them in. The card renderer became drawReportCard(doc,
     card) so a single download still prints the on-screen draft while the batch prints each saved record.
+  - Players list shows Age beside the IC, calculated from the IC itself in both the card list and the Table view —
+    no new field and nothing to keep in sync. Same ageFromIc() the report card already uses; a player with no IC
+    shows "-".
   v1.13.1 (2026-11-09)
   - Coach access code: coaches must enter a code to view/mark attendance
   - Admin can set/change coach code in Players tab > Coach Access Code
@@ -268,6 +271,7 @@ a { color: var(--gold); }
               <th style="width:40px;">BIL</th>
               <th>Nama</th>
               <th>No IC</th>
+              <th style="width:50px;">Age</th>
               <th>Contact Parents</th>
               <th style="width:80px;">Relation</th>
               <th style="width:70px;">Position</th>
@@ -787,7 +791,8 @@ async function loadAdminPlayers() {
     const player = doc.data();
     const div = document.createElement('div');
     div.className = 'player-row';
-    const icDisplay = player.ic ? ` | IC: ${player.ic}` : '';
+    const pAge = ageFromIc(player.ic, new Date().getFullYear());
+    const icDisplay = player.ic ? ` | IC: ${player.ic}${pAge === null ? '' : '  ·  Age ' + pAge}` : '';
     const parentDisplay = player.parentContact ? ` | ${player.parentRelation || 'PARENT'}: ${player.parentContact}` : '';
     const posBadge = player.position ? `<span style="font-size:10px;font-weight:700;color:#FFA700;border:1px solid #FFA700;border-radius:10px;padding:1px 7px;margin-left:6px;">${player.position === 'GK' ? 'GK' : 'OUT'}</span>` : '';
     const infoLine = (icDisplay || parentDisplay) ? `<div style="font-size:11px;color:#999;margin-top:2px;">${icDisplay}${parentDisplay}</div>` : '';
@@ -1134,14 +1139,17 @@ async function renderPlayerTable() {
   tbody.innerHTML = '';
 
   let bil = 0;
+  const currentYear = new Date().getFullYear();
   snapshot.forEach(doc => {
     bil++;
     const player = doc.data();
+    const age = ageFromIc(player.ic, currentYear);
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${bil}</td>
       <td>${player.name}</td>
       <td>${player.ic || '-'}</td>
+      <td>${age === null ? '-' : age}</td>
       <td>${player.parentContact || '-'}</td>
       <td>${player.parentRelation || '-'}</td>
       <td>${player.position || '-'}</td>
@@ -1154,7 +1162,7 @@ async function renderPlayerTable() {
   });
 
   if (bil === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;">No players found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:#999;">No players found</td></tr>';
   }
 }
 
