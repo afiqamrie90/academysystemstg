@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
+  v1.17.0 (2026-11-17)
+  - Fees tab: "Copy Payment List (WhatsApp)" button. Builds a paste-ready payment list for the chosen month across ALL
+    age groups, bucketed by actual age from IC (X TAHUN, no-IC players last under "TANPA IC"), one line per player —
+    ✅ appended when paid (or Scholarship), unpaid left blank with no icon (admin's format). Copies to clipboard
+    (navigator.clipboard with an execCommand fallback) so the admin pastes straight into the parents' WhatsApp group
+    instead of typing it by hand. buildPaymentListText() is separate so the text can be verified without a clipboard.
   v1.16.0 (2026-11-17)
   - Batch report cards download as ONE .zip: "Download All Report Cards (this group, .zip)" now renders one PDF per
     assessed player and bundles them into a single archive (JSZip) instead of firing N separate browser downloads.
@@ -90,7 +96,7 @@
   - "View Details (Table)" toggle — Excel-style table view
   - "By Age" view — players grouped by actual age from IC (tab currently hidden)
 -->
-<title>Player Management - Shah Alam City Academy v1.16.0</title>
+<title>Player Management - Shah Alam City Academy v1.17.0</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -208,7 +214,7 @@ a { color: var(--gold); }
       <h2>Player Management System</h2>
     </div>
   </div>
-  <p style="color:#999;font-size:12px;margin-bottom:20px;">Version 1.16.0 <span id="envBadge"></span></p>
+  <p style="color:#999;font-size:12px;margin-bottom:20px;">Version 1.17.0 <span id="envBadge"></span></p>
 
   <div id="loginView">
     <h3>Admin Login</h3>
@@ -478,6 +484,9 @@ a { color: var(--gold); }
       </select>
       <select id="feeYear"></select>
       <button class="btn-primary" onclick="loadFeeList()">Load</button>
+      <button class="btn-secondary" onclick="copyPaymentListWhatsApp()">📋 Copy Payment List (WhatsApp)</button>
+      <span id="copyPayStatus" style="color:#999;font-size:12px;margin-left:6px;"></span>
+      <p style="color:#999;font-size:12px;margin:8px 0 0;">Salin senarai bayaran <b>SEMUA kumpulan</b> untuk bulan terpilih, disusun ikut umur (TAHUN) — yang dah bayar ada ✅, yang belum kosong. Paste terus kat group WhatsApp.</p>
       <div id="feeList"></div>
       <div id="feeSaveBar" class="hidden" style="margin-top:15px;">
         <button class="btn-success" onclick="saveFeePayments()">Save Payment Status</button>
@@ -2587,6 +2596,69 @@ async function saveFeePayments() {
   await batch.commit();
   alert('Payment status saved!');
   loadFeeList();
+}
+
+// WhatsApp-ready payment list: every active player across ALL groups for one month, bucketed by actual
+// age (from IC), paid players get a ✅, unpaid are listed with no icon. Scholarship counts as paid.
+async function buildPaymentListText(monthKey) {
+  const paySnap = await db.collection(ROOT).doc('feePayments').collection('records').where('month', '==', monthKey).get();
+  const paid = {};
+  paySnap.forEach(d => { const x = d.data(); if (x.paid) paid[`${x.group}/${x.playerId}`] = true; });
+
+  const currentYear = new Date().getFullYear();
+  const byAge = {};
+  let total = 0, paidCount = 0;
+  for (const group of AGE_GROUPS) {
+    const snap = await db.collection(ROOT).doc('players').collection(group).where('active', '==', true).get();
+    snap.forEach(doc => {
+      const p = doc.data();
+      const isPaid = p.fee === 'Scholarship' || !!paid[`${group}/${doc.id}`];
+      const age = ageFromIc(p.ic, currentYear);
+      const bucket = age === null ? 'zzz' : String(age).padStart(3, '0');   // numeric ages sort first, no-IC last
+      (byAge[bucket] = byAge[bucket] || []).push({ name: p.name, paid: isPaid });
+      total++; if (isPaid) paidCount++;
+    });
+  }
+
+  const MN = ['','January','February','March','April','May','June','July','August','September','October','November','December'];
+  const [yr, mo] = monthKey.split('-');
+  const monthName = (MN[parseInt(mo)] || mo).toUpperCase();
+  let text = `LIST PAYMENT ✅ SACFC ACADEMY\nMONTHLY ${monthName} ${yr}\n`;
+  for (const key of Object.keys(byAge).sort()) {
+    const heading = key === 'zzz' ? 'TANPA IC' : `${parseInt(key)} TAHUN`;
+    const rows = byAge[key].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    text += `\n${heading}\n`;
+    rows.forEach((r, i) => { text += `${i + 1}. ${r.name}${r.paid ? ' ✅' : ''}\n`; });
+  }
+  return { text, total, paidCount };
+}
+
+async function copyPaymentListWhatsApp() {
+  const status = document.getElementById('copyPayStatus');
+  const month = document.getElementById('feeMonth').value;
+  const year = document.getElementById('feeYear').value;
+  if (!month || !year) { status.textContent = 'Pilih bulan & tahun dulu.'; return; }
+  status.textContent = 'Menjana…';
+  try {
+    const { text, total, paidCount } = await buildPaymentListText(`${year}-${month}`);
+    const ok = await copyTextToClipboard(text);
+    status.textContent = ok
+      ? `✅ Disalin — ${total} pemain, ${paidCount} dah bayar. Paste kat group.`
+      : 'Copy gagal — browser tak bagi akses clipboard (cuba guna Chrome).';
+    if (!ok) console.log(text);
+  } catch (e) { status.textContent = 'Ralat: ' + e.message; }
+}
+
+async function copyTextToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+  } catch (e) { /* fall back below */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'; ta.style.top = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok = document.execCommand('copy'); ta.remove(); return ok;
+  } catch (e) { return false; }
 }
 
 function generateReceipt(playerId, playerName, feeLabel, group, month, year) {
