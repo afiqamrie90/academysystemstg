@@ -51,11 +51,11 @@
     form line and the report card profile box. Internal names and the Firestore `rubrics/items` path are untouched, so
     existing criteria and saved assessment snapshots keep loading unchanged
   - Assessment criteria replaced with the Head of Development's set (2026-11-17): 67 attributes in 8 categories for
-    Outfield at 12.5% each. Goalkeeper uses its own GK sheet re-filed under our category titles — 40 attributes in 7
-    (Goalkeeping Skills 35 · Tactical Understanding 15 · Technical Skills 15 · Physical Attributes 10 · Game
-    Performance 10 · Attitude & Mentality 10 · Teamwork & Social Behaviour 5). Outfield weights are placeholders
-    until he supplies the numbers — edit them in Assessment Criteria, no code change needed. A fresh month's card is
-    2 pages; saved months keep their own snapshot.
+    Outfield at 12.5% each. Goalkeeper runs the SAME 8 categories in the SAME order with Goalkeeping Skills added on
+    top — 55 attributes in 9 at 28% + 8 x 9%. Its football-side attributes come from the GK sheet (Aerial Claim &
+    Punch, Save Quality, Receiving (Backpass) …); Discipline & Responsibility and Learning & Development Mindset
+    follow the outfield list. Outfield weights are placeholders until he supplies the numbers — edit them in
+    Assessment Criteria, no code change needed. A fresh month's card is 2 pages; saved months keep their snapshot.
   v1.13.1 (2026-11-09)
   - Coach access code: coaches must enter a code to view/mark attendance
   - Admin can set/change coach code in Players tab > Coach Access Code
@@ -1336,7 +1336,7 @@ const RUBRIC_SEED = {
     key: 'gk',
     label: 'Goalkeeper',
     categories: [
-      { key: 'gk_skills', name: 'Goalkeeping Skills', weight: 35, skills: [
+      { key: 'gk_skills', name: 'Goalkeeping Skills', weight: 28, skills: [
         { key: 'gk_skills_shot_stopping', name: 'Shot Stopping' },
         { key: 'gk_skills_handling_and_catching', name: 'Handling & Catching' },
         { key: 'gk_skills_diving_technique', name: 'Diving Technique' },
@@ -1345,21 +1345,21 @@ const RUBRIC_SEED = {
         { key: 'gk_skills_aerial_claim_and_punch', name: 'Aerial Claim & Punch' },
         { key: 'gk_skills_recovery', name: 'Recovery' }
       ]},
-      { key: 'tactical', name: 'Tactical Understanding', weight: 15, skills: [
-        { key: 'tactical_game_awareness', name: 'Game Awareness' },
-        { key: 'tactical_decision_making', name: 'Decision Making' },
-        { key: 'tactical_spatial_awareness', name: 'Spatial Awareness' },
-        { key: 'tactical_defensive_organisation', name: 'Defensive Organisation' },
-        { key: 'tactical_transition_defence_to_attack', name: 'Transition (Defence to Attack)' }
-      ]},
-      { key: 'technical', name: 'Technical Skills', weight: 15, skills: [
+      { key: 'technical', name: 'Technical Skills', weight: 9, skills: [
         { key: 'technical_first_touch', name: 'First Touch' },
         { key: 'technical_receiving_backpass', name: 'Receiving (Backpass)' },
         { key: 'technical_short_passing', name: 'Short Passing' },
         { key: 'technical_long_passing_goal_kick', name: 'Long Passing / Goal Kick' },
         { key: 'technical_ball_control_under_pressure', name: 'Ball Control Under Pressure' }
       ]},
-      { key: 'physical', name: 'Physical Attributes', weight: 10, skills: [
+      { key: 'tactical', name: 'Tactical Understanding', weight: 9, skills: [
+        { key: 'tactical_game_awareness', name: 'Game Awareness' },
+        { key: 'tactical_decision_making', name: 'Decision Making' },
+        { key: 'tactical_spatial_awareness', name: 'Spatial Awareness' },
+        { key: 'tactical_defensive_organisation', name: 'Defensive Organisation' },
+        { key: 'tactical_transition_defence_to_attack', name: 'Transition (Defence to Attack)' }
+      ]},
+      { key: 'physical', name: 'Physical Attributes', weight: 9, skills: [
         { key: 'physical_agility', name: 'Agility' },
         { key: 'physical_acceleration', name: 'Acceleration' },
         { key: 'physical_balance', name: 'Balance' },
@@ -1367,7 +1367,7 @@ const RUBRIC_SEED = {
         { key: 'physical_explosive_power', name: 'Explosive Power' },
         { key: 'physical_flexibility', name: 'Flexibility' }
       ]},
-      { key: 'performance', name: 'Game Performance', weight: 10, skills: [
+      { key: 'performance', name: 'Game Performance', weight: 9, skills: [
         { key: 'performance_consistency', name: 'Consistency' },
         { key: 'performance_save_quality', name: 'Save Quality' },
         { key: 'performance_rebound_control', name: 'Rebound Control' },
@@ -1375,7 +1375,7 @@ const RUBRIC_SEED = {
         { key: 'performance_composure', name: 'Composure' },
         { key: 'performance_adaptability', name: 'Adaptability' }
       ]},
-      { key: 'attitude', name: 'Attitude & Mentality', weight: 10, skills: [
+      { key: 'attitude', name: 'Attitude & Mentality', weight: 9, skills: [
         { key: 'attitude_confidence', name: 'Confidence' },
         { key: 'attitude_concentration', name: 'Concentration' },
         { key: 'attitude_resilience', name: 'Resilience' },
@@ -1383,12 +1383,31 @@ const RUBRIC_SEED = {
         { key: 'attitude_willingness_to_compete', name: 'Willingness to Compete' },
         { key: 'attitude_response_after_mistake', name: 'Response After Mistake' }
       ]},
-      { key: 'teamwork', name: 'Teamwork & Social Behaviour', weight: 5, skills: [
+      { key: 'discipline', name: 'Discipline & Responsibility', weight: 9, skills: [
+        { key: 'discipline_punctuality', name: 'Punctuality' },
+        { key: 'discipline_attendance', name: 'Attendance' },
+        { key: 'discipline_training_discipline', name: 'Training Discipline' },
+        { key: 'discipline_respect_for_coaches', name: 'Respect for Coaches' },
+        { key: 'discipline_respect_for_teammates', name: 'Respect for Teammates' },
+        { key: 'discipline_respect_for_opponents', name: 'Respect for Opponents' },
+        { key: 'discipline_respect_for_officials', name: 'Respect for Officials' },
+        { key: 'discipline_personal_responsibility', name: 'Personal Responsibility' },
+        { key: 'discipline_commitment', name: 'Commitment' }
+      ]},
+      { key: 'teamwork', name: 'Teamwork & Social Behaviour', weight: 9, skills: [
         { key: 'teamwork_vocal_command', name: 'Vocal Command' },
         { key: 'teamwork_organising_the_defence', name: 'Organising the Defence' },
         { key: 'teamwork_clear_and_timely_instructions', name: 'Clear & Timely Instructions' },
         { key: 'teamwork_leadership', name: 'Leadership' },
         { key: 'teamwork_cooperation', name: 'Cooperation' }
+      ]},
+      { key: 'mindset', name: 'Learning & Development Mindset', weight: 9, skills: [
+        { key: 'mindset_coachability', name: 'Coachability' },
+        { key: 'mindset_improvement', name: 'Improvement' },
+        { key: 'mindset_self_reflection', name: 'Self-Reflection' },
+        { key: 'mindset_initiative', name: 'Initiative' },
+        { key: 'mindset_goal_setting', name: 'Goal Setting' },
+        { key: 'mindset_independence', name: 'Independence' }
       ]}
     ]
   }
