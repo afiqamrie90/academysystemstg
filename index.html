@@ -51,9 +51,10 @@
     form line and the report card profile box. Internal names and the Firestore `rubrics/items` path are untouched, so
     existing criteria and saved assessment snapshots keep loading unchanged
   - Assessment criteria replaced with the Head of Development's set (2026-11-17): 67 attributes in 8 categories for
-    Outfield; Goalkeeper keeps its own Goalkeeping Skills category (5) plus the same 8 = 72 attributes. Category
-    weights are placeholders (12.5% / 10%) until he supplies the real numbers — edit them in Assessment Criteria,
-    no code change needed. A fresh month's report card is now 2 pages; saved months keep their own snapshot.
+    Outfield; Goalkeeper gets its own trimmed set — Goalkeeping Skills plus the GK-relevant attributes from the same
+    categories = 31 in 7. Weights are placeholders (12.5 outfield, 25/15/10 GK) until he supplies the real numbers —
+    edit them in Assessment Criteria, no code change needed. A fresh Outfield month's card is now 2 pages; saved
+    months keep their own snapshot.
   v1.13.1 (2026-11-09)
   - Coach access code: coaches must enter a code to view/mark attendance
   - Admin can set/change coach code in Players tab > Coach Access Code
@@ -1334,95 +1335,50 @@ const RUBRIC_SEED = {
     key: 'gk',
     label: 'Goalkeeper',
     categories: [
-      { key: 'gk_skills', name: 'Goalkeeping Skills', weight: 20, skills: [
+      { key: 'gk_skills', name: 'Goalkeeping Skills', weight: 25, skills: [
         { key: 'gk_skills_shot_stopping', name: 'Shot Stopping' },
         { key: 'gk_skills_goal_positioning', name: 'Goal Positioning' },
         { key: 'gk_skills_distribution_goal_kick', name: 'Distribution / Goal Kick' },
         { key: 'gk_skills_communication', name: 'Communication' },
         { key: 'gk_skills_rushing_out', name: 'Rushing Out' }
       ]},
-      { key: 'technical', name: 'Technical Skills', weight: 10, skills: [
-        { key: 'technical_ball_control', name: 'Ball Control' },
-        { key: 'technical_first_touch', name: 'First Touch' },
-        { key: 'technical_passing', name: 'Passing' },
-        { key: 'technical_receiving', name: 'Receiving' },
-        { key: 'technical_dribbling', name: 'Dribbling' },
-        { key: 'technical_ball_mastery', name: 'Ball Mastery' },
-        { key: 'technical_shooting', name: 'Shooting' },
-        { key: 'technical_finishing', name: 'Finishing' },
-        { key: 'technical_heading', name: 'Heading' },
-        { key: 'technical_1v1_attacking', name: '1v1 Attacking' },
-        { key: 'technical_1v1_defending', name: '1v1 Defending' },
-        { key: 'technical_crossing', name: 'Crossing' }
-      ]},
-      { key: 'tactical', name: 'Tactical Understanding', weight: 10, skills: [
-        { key: 'tactical_positioning', name: 'Positioning' },
+      { key: 'tactical', name: 'Tactical Understanding', weight: 15, skills: [
         { key: 'tactical_spatial_awareness', name: 'Spatial Awareness' },
         { key: 'tactical_decision_making', name: 'Decision Making' },
         { key: 'tactical_game_awareness', name: 'Game Awareness' },
-        { key: 'tactical_movement_off_the_ball', name: 'Movement Off the Ball' },
-        { key: 'tactical_attacking_awareness', name: 'Attacking Awareness' },
-        { key: 'tactical_defensive_awareness', name: 'Defensive Awareness' },
-        { key: 'tactical_transition', name: 'Transition' },
         { key: 'tactical_support_play', name: 'Support Play' },
-        { key: 'tactical_team_shape', name: 'Team Shape' }
+        { key: 'tactical_transition', name: 'Transition' }
       ]},
       { key: 'physical', name: 'Physical Attributes', weight: 10, skills: [
-        { key: 'physical_speed', name: 'Speed' },
-        { key: 'physical_acceleration', name: 'Acceleration' },
         { key: 'physical_agility', name: 'Agility' },
         { key: 'physical_balance', name: 'Balance' },
         { key: 'physical_coordination', name: 'Coordination' },
-        { key: 'physical_strength', name: 'Strength' },
-        { key: 'physical_endurance', name: 'Endurance' },
-        { key: 'physical_flexibility', name: 'Flexibility' }
+        { key: 'physical_strength', name: 'Strength' }
       ]},
-      { key: 'performance', name: 'Game Performance', weight: 10, skills: [
-        { key: 'performance_consistency', name: 'Consistency' },
-        { key: 'performance_match_impact', name: 'Match Impact' },
-        { key: 'performance_creativity', name: 'Creativity' },
-        { key: 'performance_confidence_on_the_ball', name: 'Confidence on the Ball' },
-        { key: 'performance_work_rate', name: 'Work Rate' },
-        { key: 'performance_adaptability', name: 'Adaptability' }
-      ]},
-      { key: 'attitude', name: 'Attitude & Mentality', weight: 10, skills: [
-        { key: 'attitude_positive_attitude', name: 'Positive Attitude' },
+      { key: 'attitude', name: 'Attitude & Mentality', weight: 15, skills: [
         { key: 'attitude_self_confidence', name: 'Self-Confidence' },
         { key: 'attitude_determination', name: 'Determination' },
         { key: 'attitude_resilience', name: 'Resilience' },
-        { key: 'attitude_willingness_to_learn', name: 'Willingness to Learn' },
-        { key: 'attitude_self_motivation', name: 'Self-Motivation' },
-        { key: 'attitude_competitiveness', name: 'Competitiveness' },
         { key: 'attitude_focus_and_concentration', name: 'Focus & Concentration' }
       ]},
-      { key: 'discipline', name: 'Discipline & Responsibility', weight: 10, skills: [
+      { key: 'discipline', name: 'Discipline & Responsibility', weight: 15, skills: [
         { key: 'discipline_punctuality', name: 'Punctuality' },
         { key: 'discipline_attendance', name: 'Attendance' },
         { key: 'discipline_training_discipline', name: 'Training Discipline' },
         { key: 'discipline_respect_for_coaches', name: 'Respect for Coaches' },
-        { key: 'discipline_respect_for_teammates', name: 'Respect for Teammates' },
-        { key: 'discipline_respect_for_opponents', name: 'Respect for Opponents' },
-        { key: 'discipline_respect_for_officials', name: 'Respect for Officials' },
-        { key: 'discipline_personal_responsibility', name: 'Personal Responsibility' },
-        { key: 'discipline_commitment', name: 'Commitment' }
+        { key: 'discipline_personal_responsibility', name: 'Personal Responsibility' }
       ]},
       { key: 'teamwork', name: 'Teamwork & Social Behaviour', weight: 10, skills: [
         { key: 'teamwork_teamwork', name: 'Teamwork' },
-        { key: 'teamwork_communication', name: 'Communication' },
         { key: 'teamwork_cooperation', name: 'Cooperation' },
         { key: 'teamwork_leadership', name: 'Leadership' },
         { key: 'teamwork_sportsmanship', name: 'Sportsmanship' },
-        { key: 'teamwork_emotional_control', name: 'Emotional Control' },
-        { key: 'teamwork_encouragement', name: 'Encouragement' },
-        { key: 'teamwork_team_spirit', name: 'Team Spirit' }
+        { key: 'teamwork_encouragement', name: 'Encouragement' }
       ]},
       { key: 'mindset', name: 'Learning & Development Mindset', weight: 10, skills: [
         { key: 'mindset_coachability', name: 'Coachability' },
         { key: 'mindset_improvement', name: 'Improvement' },
-        { key: 'mindset_self_reflection', name: 'Self-Reflection' },
-        { key: 'mindset_initiative', name: 'Initiative' },
-        { key: 'mindset_goal_setting', name: 'Goal Setting' },
-        { key: 'mindset_independence', name: 'Independence' }
+        { key: 'mindset_self_reflection', name: 'Self-Reflection' }
       ]}
     ]
   }
